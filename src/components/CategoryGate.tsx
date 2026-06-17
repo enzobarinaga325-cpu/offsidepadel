@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,13 @@ type Category = { id: string; name: string; level: string | null };
 
 export function CategoryGate() {
   const { user, profile, refreshProfile } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const needsCategory = !!user && !!profile && !(profile as any).category_id;
+  const needsCategory = !!user && !isAdmin && !!profile && !(profile as any).category_id;
 
   useEffect(() => {
     if (!needsCategory) return;
