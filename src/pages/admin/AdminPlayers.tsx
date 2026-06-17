@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 type Player = {
   user_id: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
   avatar_url: string | null;
   category_id: string | null;
 };
@@ -33,7 +36,7 @@ export default function AdminPlayers() {
     setLoading(true);
     const [{ data: cats }, { data: profs }] = await Promise.all([
       supabase.from("categories").select("id, name, level").order("name"),
-      supabase.from("profiles").select("user_id, full_name, avatar_url, category_id").order("full_name"),
+      supabase.from("profiles").select("user_id, full_name, first_name, last_name, phone, avatar_url, category_id").order("full_name"),
     ]);
     setCategories(cats ?? []);
     setPlayers((profs ?? []) as Player[]);
@@ -74,7 +77,10 @@ export default function AdminPlayers() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return players;
-    return players.filter((p) => (p.full_name ?? "").toLowerCase().includes(q));
+    return players.filter((p) => {
+      const hay = `${p.full_name ?? ""} ${p.first_name ?? ""} ${p.last_name ?? ""} ${p.phone ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
   }, [players, query]);
 
   const sortedCats = useMemo(() => {
@@ -158,7 +164,18 @@ export default function AdminPlayers() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <div className="font-medium text-sm truncate">{p.full_name || "Sin nombre"}</div>
+                        <div className="font-medium text-sm truncate">
+                          {p.first_name || p.last_name
+                            ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim()
+                            : p.full_name || "Sin nombre"}
+                        </div>
+                        <div className="text-[12px] text-muted-foreground truncate">
+                          {p.phone ? (
+                            <a href={`tel:${p.phone}`} className="hover:underline">{p.phone}</a>
+                          ) : (
+                            "Sin celular"
+                          )}
+                        </div>
                         <div className="mt-1">
                           {cat ? (
                             <Badge variant="secondary" className="text-[11px]">{cat.name}</Badge>
