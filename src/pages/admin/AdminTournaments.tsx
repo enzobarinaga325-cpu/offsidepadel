@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Copy, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Copy, Trash2, ArrowLeft, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   statusLabels,
@@ -134,7 +134,10 @@ export default function AdminTournaments() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/registrations/${t.id}`)} title="Ver inscriptos">
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/tournaments/${t.id}/manage`)} title="Gestionar fixture">
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/registrations/${t.id}`)} title="Inscripciones">
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/tournaments/${t.id}/edit`)} title="Editar">

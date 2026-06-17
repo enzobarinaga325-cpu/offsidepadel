@@ -1,88 +1,57 @@
-## Plan — Módulo Torneos y Ranking de Pádel (Fase 1)
+Listo, te asigné el rol **admin** a `barderos2811@gmail.com`. Refrescá la app y ya tenés el menú **Administración** completo.
 
-Vamos a transformar la app (hoy gestor de bugs) en una plataforma de **Torneos y Ranking de Pádel** con backend real en Lovable Cloud. Entrego por fases para que puedas revisar antes de avanzar.
+A continuación el plan para entregar **Fase 2 + Fase 3** en una sola tanda.
 
----
+## Fase 2 — Fixture, Resultados y Ranking
 
-### Qué entra en la Fase 1 (esta entrega)
+### Nuevas tablas (con RLS + GRANTs)
+- `tournament_groups` — grupos de fase regular (`name`, `tournament_id`, `category_id`).
+- `matches` — partidos del fixture:
+  - `tournament_id`, `category_id`, `group_id?`, `round` (`groups`/`r32`/`r16`/`qf`/`sf`/`final`/`3rd`), `bracket_position`, `pair_a_id`, `pair_b_id`, `winner_pair_id?`, `score_json` (sets), `status` (`scheduled`/`in_progress`/`finished`/`walkover`), `court`, `scheduled_at`, `next_match_id?` (para avance automático en eliminación).
+- `match_sets` — opcional embebido como JSON en `matches.score_json` para evitar tabla extra.
+- `standings` — tabla de posiciones cacheada por grupo (`group_id`, `pair_id`, `played`, `won`, `lost`, `sets_for`, `sets_against`, `games_for`, `games_against`, `points`).
+- `ranking_points` — puntos otorgados a cada jugador por torneo (`tournament_id`, `category_id`, `player_id`, `position`, `points`, `awarded_at`). Es la fuente del ranking acumulado.
 
-1. **Limpieza de la app actual**
-   - Quitar el módulo de bugs del menú/rutas (Dashboard, Bugs, Analytics, Settings de bugs).
-   - Mantener: autenticación, sistema de roles (`user_roles` + `has_role`), tabla `profiles`, bucket `avatars`.
-   - Renombrar branding ("Bug Tracker" → "Padel Tournaments") en landing, navbar, títulos y meta.
+### Funciones SQL (SECURITY DEFINER, search_path = public)
+- `generate_fixture(tournament_id uuid)` — según `tournaments.type`:
+  - `elimination`: arma cuadro por potencia de 2, siembra parejas aprobadas, añade BYE si hace falta, encadena `next_match_id`.
+  - `groups_elimination`: reparte parejas en grupos (configurable), genera round-robin por grupo y cuadro de eliminación con clasificados.
+  - `round_robin`: todos contra todos.
+  - Idempotente: borra fixture previo si el torneo está en `draft`/`open`.
+- `submit_match_result(match_id uuid, sets jsonb, walkover_winner uuid default null)` — valida sets, calcula ganador, actualiza `matches`, refresca `standings` si pertenece a grupo, avanza al `next_match_id` en eliminación, dispara notificaciones.
+- `finalize_tournament(tournament_id uuid)` — cuando todos los partidos terminan: calcula posiciones finales y reparte `ranking_points` usando `tournament_points_config`. Marca el torneo como `finished`.
+- `get_ranking(category_id uuid, from_date date default null, to_date date default null)` — devuelve el ranking acumulado por jugador.
+- `get_player_stats(player_id uuid)` — torneos jugados, ganados, % victorias, puntos totales, historial.
 
-2. **Base de datos nueva en Lovable Cloud**
-   Tablas (todas con RLS + GRANTs + `created_at`/`updated_at`):
-   - `categories` — nombre, género (M/F/Mixto), nivel, descripción.
-   - `tournaments` — nombre, imagen, fecha, horario, lugar, `category_id`, tipo (`elimination` | `groups_elimination` | `round_robin`), valor_inscripcion, cupos, reglamento, premios, estado (`upcoming` | `open` | `full` | `in_progress` | `finished`), `created_by`.
-   - `players` — perfil extendido del jugador (apunta a `profiles.user_id`): nivel, lado preferido (drive/revés), teléfono, ciudad.
-   - `pairs` — `player1_id`, `player2_id`, `tournament_id` (parejas se crean por torneo).
-   - `registrations` — `tournament_id`, `pair_id`, estado (`pending` | `approved` | `rejected` | `waitlist`), notas admin, fecha.
-   - `tournament_points_config` — puntos por instancia (campeón, finalista, semi, cuartos, participación) por torneo o por categoría.
-   - Tablas vacías reservadas para Fase 2 las creo recién cuando toque (matches, groups, rankings, notifications, payments) para no ensuciar el esquema.
+### Frontend
+- **Admin → Torneo**: nueva pestaña **Fixture** con botón "Generar fixture", vista por rondas/grupos, drag para reasignar cancha/horario, botón "Cargar resultado" por partido (modal con sets), botón "Finalizar torneo".
+- **Público → TournamentDetail**: pestañas **Inscriptos / Fixture / Resultados / Posiciones**, todo en tiempo real (Supabase Realtime sobre `matches` y `standings`).
+- **Nueva página `/ranking`** — selector de categoría + filtros de fecha, tabla con top jugadores, posición, puntos, torneos jugados.
+- **MyProfile**: secciones **Historial** (partidos jugados) y **Estadísticas** (ganados, puntos, mejor categoría).
 
-3. **Storage**
-   - Bucket público `tournament-images` para portadas de torneos.
+## Fase 3 — Notificaciones in-app
 
-4. **Vista pública de Torneos** (`/tournaments`)
-   - Listado con tarjetas: imagen, nombre, fecha, lugar, categoría, tipo, precio, cupos ocupados/totales, badge de estado.
-   - Filtros: categoría, estado, fecha.
-   - Detalle del torneo (`/tournaments/:id`): info completa, reglamento, premios, parejas inscriptas (aprobadas), cupos restantes, botón **Inscribirme**.
+### Tabla
+- `notifications` (`user_id`, `type`, `title`, `body`, `link`, `read_at?`, `created_at`) con RLS: el usuario sólo ve las suyas.
 
-5. **Flujo de inscripción**
-   - Usuario logueado elige compañero (buscador entre jugadores registrados; si el compañero no existe, puede invitarlo por email — se guarda como pendiente).
-   - Confirmación de datos → crea `pair` + `registration` con estado `pending`.
-   - El usuario ve sus inscripciones y el estado en su perfil (`/me`).
+### Disparadores (triggers SQL)
+- Inscripción creada → notifica al usuario ("Inscripción recibida").
+- `registrations.status` → `approved`/`rejected`/`waitlist` → notifica al jugador y a su compañero.
+- Fixture generado → notifica a todas las parejas aprobadas.
+- Cambio de `matches.scheduled_at` o `court` → notifica a las 2 parejas.
+- Resultado cargado → notifica a las 2 parejas.
+- Torneo finalizado → notifica a todos los inscriptos con su posición final y puntos obtenidos.
 
-6. **Panel de Administración** (`/admin`, solo rol `admin`)
-   - **Torneos:** crear, editar, duplicar, eliminar, subir imagen, abrir/cerrar inscripciones, cambiar estado.
-   - **Categorías:** CRUD completo.
-   - **Inscriptos por torneo:** ver todas las inscripciones, aprobar, rechazar, mover a lista de espera, eliminar, agregar parejas manualmente.
-   - **Config de puntos:** editar puntos por instancia (queda guardado para Fase 2).
+### Frontend
+- Campanita en el header con badge de no leídas, popover con últimas 10, link "Ver todas" → `/notifications`.
+- Realtime sobre `notifications` para push instantáneo.
+- Marcar como leída al hacer click o con botón "Marcar todas".
 
-7. **Perfil del jugador** (`/me`)
-   - Datos personales (editables).
-   - Inscripciones pendientes / aprobadas / rechazadas.
-   - Próximos torneos y torneos finalizados (placeholder con datos reales de `registrations`).
-   - Secciones de ranking / historial / estadísticas se muestran como "Disponible próximamente" hasta Fase 2.
+## Calidad
+- RLS estricta (público sólo lee fixture/resultados/posiciones, admin escribe, jugadores ven sus partidos siempre).
+- GRANTs en cada tabla nueva.
+- Validación Zod en formularios de resultado.
+- Sin pantallas vacías: estados "Fixture aún no generado", "Sin notificaciones", etc.
+- Sin botones placeholder.
 
-8. **Diseño**
-   - Mantener el sistema de tokens semánticos (colores, tipografía) de la app actual.
-   - Rebrand visual hacia pádel (paleta verde cancha + acento naranja pelota, sin romper dark mode).
-   - Totalmente responsive (mobile/tablet/desktop), tablas con scroll horizontal en mobile.
-
-9. **Calidad**
-   - Validación con Zod en todos los formularios.
-   - Sin botones placeholder: lo que no esté en Fase 1 no aparece en la UI.
-   - Verificación de RLS, GRANTs, y consola limpia antes de cerrar.
-
----
-
-### Qué queda para fases siguientes (te aviso al terminar la Fase 1)
-
-- **Fase 2:** Armado automático de fixture (eliminación directa, grupos + eliminación, todos contra todos), carga de resultados, actualización automática del cuadro, ranking por categoría calculado automáticamente, historial completo del jugador y estadísticas.
-- **Fase 3:** Notificaciones in-app (inscripción aprobada/rechazada, fixture publicado, cambios de horario, resultados, fin de torneo).
-- **Fase 4:** Cobro de inscripción online. Como mencionaste pagos, antes de implementar voy a correr el chequeo de proveedor (`recommend_payment_provider`) y proponerte el más adecuado (Stripe es el más probable para Argentina/LATAM dentro de las opciones nativas de Lovable; MercadoPago no es nativo, requeriría integración custom — lo conversamos cuando lleguemos).
-
----
-
-### Detalles técnicos
-
-- Stack: React + Vite + Tailwind + shadcn (sin cambios).
-- Backend: Lovable Cloud (Supabase gestionado). Todas las tablas en `public` con RLS estricta:
-  - Lectura pública de torneos/categorías abiertas.
-  - Inscripciones: el dueño ve las suyas, el admin ve todas.
-  - Escritura de torneos/categorías: solo `has_role(auth.uid(), 'admin')`.
-- Roles: reutilizo `user_roles` y `has_role` ya existentes.
-- Imágenes en bucket público `tournament-images` con políticas por rol admin para escritura.
-- Edge functions: ninguna necesaria en Fase 1 (todo client + RLS). En Fase 2 sí (generación de fixture y cálculo de ranking).
-
----
-
-### Migraciones de DB
-
-Voy a aplicar **una sola migración** que crea todas las tablas nuevas de Fase 1 con sus GRANTs, RLS, políticas y triggers de `updated_at`. Te llegará para aprobar antes de ejecutarse.
-
-### Confirmación
-
-Si te parece bien este alcance de Fase 1, lo construyo de corrido. ¿Avanzo?
+Si te parece, lo ejecuto ahora: primero la migración (tablas + funciones + triggers + RLS + GRANTs + Realtime), después todo el frontend.

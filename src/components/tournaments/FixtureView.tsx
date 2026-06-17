@@ -1,0 +1,182 @@
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { roundLabels, roundOrder, matchStatusLabels, formatSetsScore } from "@/lib/match-helpers";
+import { Calendar } from "lucide-react";
+import { MatchResultDialog } from "@/components/admin/MatchResultDialog";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
+type Match = {
+  id: string;
+  round: string;
+  bracket_position: number;
+  group_id: string | null;
+  pair_a_id: string | null;
+  pair_b_id: string | null;
+  winner_pair_id: string | null;
+  score: any;
+  status: string;
+  court: string | null;
+  scheduled_at: string | null;
+};
+
+type PairLabel = { id: string; label: string };
+
+export function FixtureView({ tournamentId }: { tournamentId: string }) {
+  const { isAdmin } = useIsAdmin();
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  const [pairs, setPairs] = useState<Map<string, string>>(new Map());
+  const [editMatch, setEditMatch] = useState<Match | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: m }, { data: g }, { data: p }] = await Promise.all([
+      supabase.from("matches").select("*").eq("tournament_id", tournamentId).order("bracket_position"),
+      supabase.from("tournament_groups").select("id, name").eq("tournament_id", tournamentId).order("position"),
+      supabase.from("pairs").select("id, player1_id, player2_id").eq("tournament_id", tournamentId),
+    ]);
+    setMatches((m ?? []) as Match[]);
+    setGroups(g ?? []);
+
+    const userIds = new Set<string>();
+    (p ?? []).forEach((pr: any) => {
+      if (pr.player1_id) userIds.add(pr.player1_id);
+      if (pr.player2_id) userIds.add(pr.player2_id);
+    });
+    const nameMap = new Map<string, string>();
+    if (userIds.size > 0) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(userIds));
+      (profs ?? []).forEach((pr) => nameMap.set(pr.user_id, pr.full_name ?? "Jugador"));
+    }
+    const pairMap = new Map<string, string>();
+    (p ?? []).forEach((pr: any) => {
+      pairMap.set(pr.id, `${nameMap.get(pr.player1_id) ?? "?"} / ${nameMap.get(pr.player2_id) ?? "?"}`);
+    });
+    setPairs(pairMap);
+    setLoading(false);
+  }, [tournamentId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`matches:${tournamentId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches", filter: `tournament_id=eq.${tournamentId}` }, () => void load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [tournamentId, load]);
+
+  if (loading) return <p className="text-sm text-muted-foreground">Cargando fixture…</p>;
+  if (matches.length === 0) {
+    return (
+      <Card className="p-8 text-center">
+        <p className="text-sm text-muted-foreground">El fixture aún no fue generado.</p>
+      </Card>
+    );
+  }
+
+  const groupMatches = matches.filter((m) => m.group_id);
+  const bracketMatches = matches.filter((m) => !m.group_id);
+  const bracketByRound = bracketMatches.reduce<Record<string, Match[]>>((acc, m) => {
+    (acc[m.round] ||= []).push(m);
+    return acc;
+  }, {});
+  const rounds = Object.keys(bracketByRound).sort((a, b) => roundOrder[a] - roundOrder[b]);
+
+  return (
+    <div className="space-y-6">
+      {groups.map((g) => {
+        const ms = groupMatches.filter((m) => m.group_id === g.id);
+        if (ms.length === 0) return null;
+        return (
+          <div key={g.id}>
+            <h3 className="font-semibold mb-2">{g.name}</h3>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {ms.map((m) => (
+                <MatchCard key={m.id} m={m} pairs={pairs} isAdmin={isAdmin} onEdit={() => setEditMatch(m)} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {rounds.length > 0 && (
+        <div>
+          <h3 className="font-semibold mb-2">Cuadro</h3>
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {rounds.map((r) => (
+              <div key={r} className="min-w-[240px] flex-1">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{roundLabels[r]}</div>
+                <div className="space-y-2">
+                  {bracketByRound[r].sort((a, b) => a.bracket_position - b.bracket_position).map((m) => (
+                    <MatchCard key={m.id} m={m} pairs={pairs} isAdmin={isAdmin} onEdit={() => setEditMatch(m)} compact />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {editMatch && (
+        <MatchResultDialog
+          match={editMatch}
+          pairLabelA={editMatch.pair_a_id ? pairs.get(editMatch.pair_a_id) ?? "—" : "—"}
+          pairLabelB={editMatch.pair_b_id ? pairs.get(editMatch.pair_b_id) ?? "—" : "—"}
+          open={!!editMatch}
+          onOpenChange={(o) => !o && setEditMatch(null)}
+          onSuccess={() => { setEditMatch(null); void load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MatchCard({
+  m, pairs, isAdmin, onEdit, compact,
+}: {
+  m: Match;
+  pairs: Map<string, string>;
+  isAdmin: boolean;
+  onEdit: () => void;
+  compact?: boolean;
+}) {
+  const a = m.pair_a_id ? pairs.get(m.pair_a_id) ?? "BYE" : "Por definir";
+  const b = m.pair_b_id ? pairs.get(m.pair_b_id) ?? "BYE" : "Por definir";
+  const aWon = m.winner_pair_id && m.winner_pair_id === m.pair_a_id;
+  const bWon = m.winner_pair_id && m.winner_pair_id === m.pair_b_id;
+  return (
+    <Card className={`p-3 ${compact ? "text-xs" : "text-sm"}`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <Badge variant="outline" className="text-[10px]">{matchStatusLabels[m.status] ?? m.status}</Badge>
+        {m.court && <span className="text-[11px] text-muted-foreground">{m.court}</span>}
+      </div>
+      <div className="space-y-1">
+        <div className={`flex justify-between gap-2 ${aWon ? "font-semibold" : ""}`}>
+          <span className="truncate">{a}</span>
+        </div>
+        <div className={`flex justify-between gap-2 ${bWon ? "font-semibold" : ""}`}>
+          <span className="truncate">{b}</span>
+        </div>
+      </div>
+      {(m.status === "finished" || m.status === "walkover") && (
+        <div className="text-[11px] text-muted-foreground mt-2 font-mono">{formatSetsScore(m.score)}</div>
+      )}
+      {m.scheduled_at && (
+        <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+          <Calendar className="h-3 w-3" />
+          {new Date(m.scheduled_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
+        </div>
+      )}
+      {isAdmin && m.pair_a_id && m.pair_b_id && (
+        <Button variant="outline" size="sm" className="w-full mt-2 h-7 text-xs" onClick={onEdit}>
+          {m.status === "scheduled" ? "Cargar resultado" : "Editar resultado"}
+        </Button>
+      )}
+    </Card>
+  );
+}
