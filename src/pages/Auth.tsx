@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { lovable } from "@/integrations/lovable/index";
+import { OffsideLogo } from "@/components/OffsideLogo";
 
 export default function Auth() {
   const { user, loading, signIn, signUp } = useAuth();
@@ -76,13 +77,13 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-[420px] border border-border rounded-md p-8 space-y-6">
+      <div className="w-full max-w-[420px] border border-border rounded-lg p-6 sm:p-8 space-y-6 bg-card">
         {/* Logo */}
-        <div className="flex flex-col items-start gap-3">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-[14px] font-bold text-foreground tracking-tight">Padel Tournaments</span>
+        <div className="flex flex-col items-center gap-3">
+          <Link to="/" className="flex items-center justify-center bg-black rounded-md px-4 py-3 hover:opacity-90 transition-opacity">
+            <OffsideLogo height={32} className="[filter:none] dark:[filter:none]" />
           </Link>
-          <p className="text-[13px] text-muted-foreground">Inscribite, jugá y seguí tu ranking</p>
+          <p className="text-[13px] text-muted-foreground text-center">Torneos y ranking de pádel</p>
         </div>
 
         {/* Google */}

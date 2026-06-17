@@ -6,6 +6,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { OffsideLogo } from "@/components/OffsideLogo";
 
 const baseNav = [
   { icon: Trophy, label: "Torneos", path: "/tournaments" },
@@ -26,14 +27,13 @@ export function SidebarContent({ collapsed = false, onNavigate }: { collapsed?: 
 
   return (
     <>
-      <div className="flex items-center gap-2 px-3 h-12 border-b border-sidebar-border">
-        <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-          <Trophy className="h-4 w-4 text-primary-foreground" />
-        </div>
-        {!collapsed && (
-          <span className="font-semibold text-sm text-sidebar-accent-foreground tracking-tight">Padel</span>
-        )}
-      </div>
+      <Link
+        to="/"
+        onClick={onNavigate}
+        className="flex items-center justify-center px-3 h-14 border-b border-sidebar-border bg-black hover:opacity-90 transition-opacity"
+      >
+        <OffsideLogo height={collapsed ? 20 : 26} className="!dark:[filter:none] [filter:none]" />
+      </Link>
 
       <nav className="flex-1 py-2 px-2 space-y-0.5">
         {navItems.map((item) => {
