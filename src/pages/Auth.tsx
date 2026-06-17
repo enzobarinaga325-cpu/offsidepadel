@@ -161,8 +161,8 @@ export default function Auth() {
           </TabsContent>
         </Tabs>
 
-        <p className="text-left text-[11px] text-muted-foreground pt-2">
-          © {new Date().getFullYear()} Padel Tournaments
+        <p className="text-center text-[11px] text-muted-foreground pt-2">
+          © {new Date().getFullYear()} Off-Side
         </p>
       </div>
     </div>
