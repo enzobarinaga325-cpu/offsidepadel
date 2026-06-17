@@ -158,6 +158,36 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          gender: Database["public"]["Enums"]["category_gender"]
+          id: string
+          level: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          gender?: Database["public"]["Enums"]["category_gender"]
+          id?: string
+          level?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          gender?: Database["public"]["Enums"]["category_gender"]
+          id?: string
+          level?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           bug_id: string
@@ -304,6 +334,83 @@ export type Database = {
         }
         Relationships: []
       }
+      pairs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          id: string
+          player1_id: string
+          player2_id: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          player1_id: string
+          player2_id: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          player1_id?: string
+          player2_id?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairs_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          city: string | null
+          created_at: string
+          date_of_birth: string | null
+          id: string
+          level: string | null
+          phone: string | null
+          preferred_side: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          id?: string
+          level?: string | null
+          phone?: string | null
+          preferred_side?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          id?: string
+          level?: string | null
+          phone?: string | null
+          preferred_side?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -361,6 +468,194 @@ export type Database = {
         }
         Relationships: []
       }
+      registrations: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          pair_id: string
+          registered_at: string
+          registered_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          pair_id: string
+          registered_at?: string
+          registered_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          pair_id?: string
+          registered_at?: string
+          registered_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_pair_id_fkey"
+            columns: ["pair_id"]
+            isOneToOne: true
+            referencedRelation: "pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_points_config: {
+        Row: {
+          category_id: string | null
+          champion_points: number
+          created_at: string
+          finalist_points: number
+          id: string
+          participation_points: number
+          quarterfinalist_points: number
+          semifinalist_points: number
+          tournament_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          champion_points?: number
+          created_at?: string
+          finalist_points?: number
+          id?: string
+          participation_points?: number
+          quarterfinalist_points?: number
+          semifinalist_points?: number
+          tournament_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          champion_points?: number
+          created_at?: string
+          finalist_points?: number
+          id?: string
+          participation_points?: number
+          quarterfinalist_points?: number
+          semifinalist_points?: number
+          tournament_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_points_config_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_points_config_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          location: string
+          max_pairs: number
+          name: string
+          prizes: string | null
+          registration_deadline: string | null
+          registration_fee: number
+          registration_open: boolean
+          rules: string | null
+          start_date: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["tournament_status"]
+          tournament_type: Database["public"]["Enums"]["tournament_type"]
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          location: string
+          max_pairs?: number
+          name: string
+          prizes?: string | null
+          registration_deadline?: string | null
+          registration_fee?: number
+          registration_open?: boolean
+          rules?: string | null
+          start_date: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["tournament_status"]
+          tournament_type?: Database["public"]["Enums"]["tournament_type"]
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string
+          max_pairs?: number
+          name?: string
+          prizes?: string | null
+          registration_deadline?: string | null
+          registration_fee?: number
+          registration_open?: boolean
+          rules?: string | null
+          start_date?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["tournament_status"]
+          tournament_type?: Database["public"]["Enums"]["tournament_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -412,6 +707,16 @@ export type Database = {
         | "testing"
         | "resolved"
         | "closed"
+      category_gender: "male" | "female" | "mixed"
+      registration_status: "pending" | "approved" | "rejected" | "waitlist"
+      tournament_status:
+        | "upcoming"
+        | "open"
+        | "full"
+        | "in_progress"
+        | "finished"
+        | "cancelled"
+      tournament_type: "elimination" | "groups_elimination" | "round_robin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -549,6 +854,17 @@ export const Constants = {
         "resolved",
         "closed",
       ],
+      category_gender: ["male", "female", "mixed"],
+      registration_status: ["pending", "approved", "rejected", "waitlist"],
+      tournament_status: [
+        "upcoming",
+        "open",
+        "full",
+        "in_progress",
+        "finished",
+        "cancelled",
+      ],
+      tournament_type: ["elimination", "groups_elimination", "round_robin"],
     },
   },
 } as const
