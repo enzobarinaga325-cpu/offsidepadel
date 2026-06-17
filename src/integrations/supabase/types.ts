@@ -654,13 +654,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ranking_points_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ranking_points_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
