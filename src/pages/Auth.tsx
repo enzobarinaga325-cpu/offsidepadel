@@ -19,7 +19,9 @@ export default function Auth() {
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
+  const [signupFirstName, setSignupFirstName] = useState("");
+  const [signupLastName, setSignupLastName] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
 
@@ -61,15 +63,23 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (signupPassword.length < 6) {
-      toast({ title: "Password too short", description: "Minimum 6 characters", variant: "destructive" });
+      toast({ title: "Contraseña muy corta", description: "Mínimo 6 caracteres", variant: "destructive" });
+      return;
+    }
+    if (!signupFirstName.trim() || !signupLastName.trim() || !signupPhone.trim()) {
+      toast({ title: "Datos incompletos", description: "Nombre, apellido y celular son obligatorios.", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
     try {
-      await signUp(signupEmail, signupPassword, signupName);
-      toast({ title: "Account created!", description: "Check your email to confirm your account." });
+      await signUp(signupEmail, signupPassword, {
+        firstName: signupFirstName.trim(),
+        lastName: signupLastName.trim(),
+        phone: signupPhone.trim(),
+      });
+      toast({ title: "¡Cuenta creada!", description: "Revisá tu email para confirmar tu cuenta." });
     } catch (error: any) {
-      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+      toast({ title: "Error de registro", description: error.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -141,21 +151,32 @@ export default function Auth() {
 
           <TabsContent value="signup" className="mt-4">
             <form onSubmit={handleSignup} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[12px]">Nombre</Label>
+                  <Input type="text" placeholder="Juan" value={signupFirstName} onChange={(e) => setSignupFirstName(e.target.value)} required className="h-8 text-[13px]" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[12px]">Apellido</Label>
+                  <Input type="text" placeholder="Pérez" value={signupLastName} onChange={(e) => setSignupLastName(e.target.value)} required className="h-8 text-[13px]" />
+                </div>
+              </div>
               <div className="space-y-1">
-                <Label className="text-[12px]">Full Name</Label>
-                <Input type="text" placeholder="Jane Doe" value={signupName} onChange={(e) => setSignupName(e.target.value)} required className="h-8 text-[13px]" />
+                <Label className="text-[12px]">Celular</Label>
+                <Input type="tel" inputMode="tel" placeholder="+54 9 11 5555 5555" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} required className="h-8 text-[13px]" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[12px]">Email</Label>
-                <Input type="email" placeholder="you@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required className="h-8 text-[13px]" />
+                <Input type="email" placeholder="vos@ejemplo.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required className="h-8 text-[13px]" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[12px]">Password</Label>
-                <Input type="password" placeholder="Min 6 characters" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={6} className="h-8 text-[13px]" />
+                <Label className="text-[12px]">Contraseña</Label>
+                <Input type="password" placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={6} className="h-8 text-[13px]" />
               </div>
+              <p className="text-[11px] text-muted-foreground">La categoría de juego la elegirás al ingresar y solo el administrador podrá modificarla luego.</p>
               <Button type="submit" className="w-full h-8 text-[13px]" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                Create Account
+                Crear cuenta
               </Button>
             </form>
           </TabsContent>
