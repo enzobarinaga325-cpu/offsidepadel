@@ -282,3 +282,43 @@ function Section({
     </div>
   );
 }
+
+function PlayerStatsCard({ userId }: { userId?: string }) {
+  const [stats, setStats] = useState<any>(null);
+  useEffect(() => {
+    if (!userId) return;
+    void supabase.rpc("get_player_stats", { _player_id: userId }).then(({ data }) => setStats(data));
+  }, [userId]);
+  if (!stats) {
+    return (
+      <Card className="p-6 mt-4 max-w-[600px] bg-muted/30">
+        <h3 className="font-semibold mb-1 text-sm">Estadísticas</h3>
+        <p className="text-xs text-muted-foreground">Se activan cuando jugás tu primer torneo.</p>
+      </Card>
+    );
+  }
+  const winRate = stats.matches_played > 0
+    ? Math.round((stats.matches_won / stats.matches_played) * 100)
+    : 0;
+  return (
+    <Card className="p-6 mt-4 max-w-[600px]">
+      <h3 className="font-semibold mb-3 text-sm">Mis estadísticas</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Stat label="Torneos" value={stats.tournaments_played} />
+        <Stat label="Títulos" value={stats.tournaments_won} />
+        <Stat label="Partidos ganados" value={`${stats.matches_won}/${stats.matches_played}`} />
+        <Stat label="Puntos" value={stats.total_points} />
+      </div>
+      <div className="text-xs text-muted-foreground mt-3">Efectividad: {winRate}%</div>
+    </Card>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div>
+      <div className="text-2xl font-semibold">{value}</div>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+    </div>
+  );
+}
