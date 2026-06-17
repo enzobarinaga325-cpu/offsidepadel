@@ -40,7 +40,36 @@ export default function AdminPlayers() {
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+    const channel = supabase
+      .channel("admin-players-profiles")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        (payload) => {
+          setPlayers((prev) => {
+            if (payload.eventType === "DELETE") {
+              const oldId = (payload.old as any)?.user_id;
+              return prev.filter((p) => p.user_id !== oldId);
+            }
+            const row = payload.new as Player;
+            if (!row?.user_id) return prev;
+            const exists = prev.some((p) => p.user_id === row.user_id);
+            if (exists) {
+              return prev.map((p) => (p.user_id === row.user_id ? { ...p, ...row } : p));
+            }
+            return [...prev, row].sort((a, b) =>
+              (a.full_name ?? "").localeCompare(b.full_name ?? "")
+            );
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
