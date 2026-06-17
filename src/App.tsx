@@ -19,6 +19,7 @@ import AdminTournaments from "./pages/admin/AdminTournaments";
 import AdminTournamentForm from "./pages/admin/AdminTournamentForm";
 import AdminTournamentManage from "./pages/admin/AdminTournamentManage";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminPlayers from "./pages/admin/AdminPlayers";
 import AdminRegistrations from "./pages/admin/AdminRegistrations";
 import NotFound from "./pages/NotFound";
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/admin/tournaments/:id/edit" element={<AdminRoute><AdminTournamentForm /></AdminRoute>} />
               <Route path="/admin/tournaments/:id/manage" element={<AdminRoute><AdminTournamentManage /></AdminRoute>} />
               <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
+              <Route path="/admin/players" element={<AdminRoute><AdminPlayers /></AdminRoute>} />
               <Route path="/admin/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
               <Route path="/admin/registrations/:tournamentId" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />

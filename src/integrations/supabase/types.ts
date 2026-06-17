@@ -547,6 +547,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          category_id: string | null
           created_at: string
           full_name: string
           id: string
@@ -556,6 +557,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          category_id?: string | null
           created_at?: string
           full_name?: string
           id?: string
@@ -565,6 +567,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          category_id?: string | null
           created_at?: string
           full_name?: string
           id?: string
@@ -572,7 +575,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -971,6 +982,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_category: {
+        Args: { _category_id: string; _user_id: string }
+        Returns: undefined
+      }
       finalize_tournament: {
         Args: { _tournament_id: string }
         Returns: undefined

@@ -180,29 +180,27 @@ export default function MyProfile() {
           </TabsList>
 
           <TabsContent value="profile" className="mt-4">
-            <Card className="p-6 max-w-[600px]">
+            <CategoryCard userId={user?.id} categoryId={(profile as any)?.category_id ?? null} />
+
+            <Card className="p-5 sm:p-6 max-w-[600px] mt-4">
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label>Nombre completo</Label>
-                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required className="h-11" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Teléfono</Label>
-                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11" inputMode="tel" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Ciudad</Label>
-                    <Input value={city} onChange={(e) => setCity(e.target.value)} />
+                    <Input value={city} onChange={(e) => setCity(e.target.value)} className="h-11" />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Nivel</Label>
-                    <Input value={level} onChange={(e) => setLevel(e.target.value)} placeholder="Ej: 4ta, 6ta" />
-                  </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label>Lado preferido</Label>
                     <Select value={side} onValueChange={setSide}>
-                      <SelectTrigger><SelectValue placeholder="Elegí un lado" /></SelectTrigger>
+                      <SelectTrigger className="h-11"><SelectValue placeholder="Elegí un lado" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="drive">Drive</SelectItem>
                         <SelectItem value="reves">Revés</SelectItem>
@@ -211,7 +209,7 @@ export default function MyProfile() {
                     </Select>
                   </div>
                 </div>
-                <Button type="submit" disabled={saving}>
+                <Button type="submit" disabled={saving} className="h-11 w-full sm:w-auto">
                   {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Guardar cambios
                 </Button>
@@ -320,5 +318,29 @@ function Stat({ label, value }: { label: string; value: number | string }) {
       <div className="text-2xl font-semibold">{value}</div>
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+function CategoryCard({ userId, categoryId }: { userId?: string; categoryId: string | null }) {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!categoryId) { setName(null); return; }
+    void supabase.from("categories").select("name").eq("id", categoryId).maybeSingle()
+      .then(({ data }) => setName(data?.name ?? null));
+  }, [categoryId]);
+  if (!userId) return null;
+  return (
+    <Card className="p-5 max-w-[600px] bg-primary/5 border-primary/30">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mi categoría</div>
+          <div className="text-lg font-semibold mt-0.5 truncate">{name ?? "Sin asignar"}</div>
+        </div>
+        <Trophy className="h-6 w-6 text-primary shrink-0" />
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-2">
+        Solo el administrador puede modificar tu categoría.
+      </p>
+    </Card>
   );
 }

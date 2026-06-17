@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
-import { Trophy, Tag, ClipboardList } from "lucide-react";
+import { Trophy, Tag, ClipboardList, Users } from "lucide-react";
 
 const sections = [
   { path: "/admin/tournaments", label: "Torneos", desc: "Crear, editar, abrir/cerrar inscripciones", icon: Trophy },
-  { path: "/admin/categories", label: "Categorías", desc: "Niveles, género y descripciones", icon: Tag },
   { path: "/admin/registrations", label: "Inscripciones", desc: "Aprobar, rechazar o mover a lista de espera", icon: ClipboardList },
+  { path: "/admin/players", label: "Jugadores", desc: "Buscar jugadores y asignar / ascender categoría", icon: Users },
+  { path: "/admin/categories", label: "Categorías", desc: "Niveles, género y descripciones", icon: Tag },
 ];
 
 export default function AdminHome() {
