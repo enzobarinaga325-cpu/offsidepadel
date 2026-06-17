@@ -6,7 +6,7 @@ const Index = () => {
   const { user, loading } = useAuth();
 
   if (loading) return null;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/tournaments" replace />;
 
   return <Landing />;
 };

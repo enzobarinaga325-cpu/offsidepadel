@@ -6,14 +6,17 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import BugCreate from "./pages/BugCreate";
-import BugDetail from "./pages/BugDetail";
-import BugList from "./pages/BugList";
-import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
+import Tournaments from "./pages/Tournaments";
+import TournamentDetail from "./pages/TournamentDetail";
+import MyProfile from "./pages/MyProfile";
+import AdminHome from "./pages/admin/AdminHome";
+import AdminTournaments from "./pages/admin/AdminTournaments";
+import AdminTournamentForm from "./pages/admin/AdminTournamentForm";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminRegistrations from "./pages/admin/AdminRegistrations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,14 +30,18 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/bugs" element={<ProtectedRoute><BugList /></ProtectedRoute>} />
-              <Route path="/bugs/new" element={<ProtectedRoute><BugCreate /></ProtectedRoute>} />
-              <Route path="/bugs/:id" element={<ProtectedRoute><BugDetail /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/tournaments" element={<Tournaments />} />
+              <Route path="/tournaments/:id" element={<TournamentDetail />} />
+              <Route path="/me" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
+              <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />
+              <Route path="/admin/tournaments" element={<AdminRoute><AdminTournaments /></AdminRoute>} />
+              <Route path="/admin/tournaments/new" element={<AdminRoute><AdminTournamentForm /></AdminRoute>} />
+              <Route path="/admin/tournaments/:id/edit" element={<AdminRoute><AdminTournamentForm /></AdminRoute>} />
+              <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
+              <Route path="/admin/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
+              <Route path="/admin/registrations/:tournamentId" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
