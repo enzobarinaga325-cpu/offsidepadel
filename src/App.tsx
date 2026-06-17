@@ -21,6 +21,8 @@ import AdminTournamentManage from "./pages/admin/AdminTournamentManage";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPlayers from "./pages/admin/AdminPlayers";
 import AdminRegistrations from "./pages/admin/AdminRegistrations";
+import AdminStats from "./pages/admin/AdminStats";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => (
               <Route path="/admin/players" element={<AdminRoute><AdminPlayers /></AdminRoute>} />
               <Route path="/admin/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
               <Route path="/admin/registrations/:tournamentId" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
+              <Route path="/admin/stats" element={<AdminRoute><AdminStats /></AdminRoute>} />
+              <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
