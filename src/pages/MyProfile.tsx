@@ -218,12 +218,8 @@ export default function MyProfile() {
               </form>
             </Card>
 
-            <Card className="p-6 mt-4 max-w-[600px] bg-muted/30">
-              <h3 className="font-semibold mb-1 text-sm">Ranking, historial y estadísticas</h3>
-              <p className="text-xs text-muted-foreground">
-                Disponibles próximamente. Se activarán automáticamente cuando se jueguen los primeros torneos.
-              </p>
-            </Card>
+            <PlayerStatsCard userId={user?.id} />
+
           </TabsContent>
 
           <TabsContent value="registrations" className="mt-4 space-y-6">

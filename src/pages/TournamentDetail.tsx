@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, MapPin, Users, Trophy, ArrowLeft, DollarSign, Clock } from "lucide-react";
+import { FixtureView } from "@/components/tournaments/FixtureView";
+import { StandingsView } from "@/components/tournaments/StandingsView";
 import {
   statusLabels,
   statusColors,
@@ -222,8 +225,15 @@ export default function TournamentDetail() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <Tabs defaultValue="info">
+          <TabsList>
+            <TabsTrigger value="info">Información</TabsTrigger>
+            <TabsTrigger value="pairs">Inscriptos ({pairs.length})</TabsTrigger>
+            <TabsTrigger value="fixture">Fixture</TabsTrigger>
+            <TabsTrigger value="standings">Posiciones</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info" className="mt-4 space-y-4">
             {tournament.description && (
               <Card className="p-6">
                 <h2 className="font-semibold mb-2">Descripción</h2>
@@ -242,24 +252,37 @@ export default function TournamentDetail() {
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.prizes}</p>
               </Card>
             )}
-          </div>
-
-          <Card className="p-6 h-fit">
-            <h2 className="font-semibold mb-3">Parejas confirmadas</h2>
-            {pairs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aún no hay parejas confirmadas.</p>
-            ) : (
-              <ul className="space-y-2">
-                {pairs.map((p, i) => (
-                  <li key={p.pair_id} className="text-sm flex items-start gap-2 py-1.5 border-b border-border last:border-0">
-                    <span className="text-xs text-muted-foreground font-mono w-5 pt-0.5">{i + 1}.</span>
-                    <span>{p.player1_name} <span className="text-muted-foreground">/</span> {p.player2_name}</span>
-                  </li>
-                ))}
-              </ul>
+            {!tournament.description && !tournament.rules && !tournament.prizes && (
+              <Card className="p-6 text-sm text-muted-foreground">Sin información adicional.</Card>
             )}
-          </Card>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="pairs" className="mt-4">
+            <Card className="p-6">
+              <h2 className="font-semibold mb-3">Parejas confirmadas</h2>
+              {pairs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aún no hay parejas confirmadas.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {pairs.map((p, i) => (
+                    <li key={p.pair_id} className="text-sm flex items-start gap-2 py-1.5 border-b border-border last:border-0">
+                      <span className="text-xs text-muted-foreground font-mono w-5 pt-0.5">{i + 1}.</span>
+                      <span>{p.player1_name} <span className="text-muted-foreground">/</span> {p.player2_name}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="fixture" className="mt-4">
+            <FixtureView tournamentId={tournament.id} />
+          </TabsContent>
+
+          <TabsContent value="standings" className="mt-4">
+            <StandingsView tournamentId={tournament.id} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {showRegister && tournament && (
