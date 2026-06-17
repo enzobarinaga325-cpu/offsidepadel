@@ -91,15 +91,22 @@ export default function TournamentDetail() {
     );
 
     if (user) {
-      const { data: myReg } = await supabase
-        .from("registrations")
-        .select("status, pairs!inner(player1_id, player2_id, created_by)")
+      const { data: myPairs } = await supabase
+        .from("pairs")
+        .select("id")
         .eq("tournament_id", id!)
-        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},created_by.eq.${user.id}`, {
-          foreignTable: "pairs",
-        })
-        .maybeSingle();
-      setMyRegStatus(myReg?.status ?? null);
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},created_by.eq.${user.id}`);
+      const myPairIds = (myPairs ?? []).map((p) => p.id);
+      if (myPairIds.length > 0) {
+        const { data: myReg } = await supabase
+          .from("registrations")
+          .select("status")
+          .in("pair_id", myPairIds)
+          .maybeSingle();
+        setMyRegStatus(myReg?.status ?? null);
+      } else {
+        setMyRegStatus(null);
+      }
     }
 
     setLoading(false);
