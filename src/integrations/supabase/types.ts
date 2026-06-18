@@ -722,6 +722,7 @@ export type Database = {
           admin_comment: string | null
           admin_notes: string | null
           approval_reason: string | null
+          availability: string | null
           created_at: string
           id: string
           invited_by: string | null
@@ -741,6 +742,7 @@ export type Database = {
           admin_comment?: string | null
           admin_notes?: string | null
           approval_reason?: string | null
+          availability?: string | null
           created_at?: string
           id?: string
           invited_by?: string | null
@@ -760,6 +762,7 @@ export type Database = {
           admin_comment?: string | null
           admin_notes?: string | null
           approval_reason?: string | null
+          availability?: string | null
           created_at?: string
           id?: string
           invited_by?: string | null
@@ -1286,10 +1289,19 @@ export type Database = {
         Returns: undefined
       }
       recompute_standings: { Args: { _group_id: string }; Returns: undefined }
-      request_pair_registration: {
-        Args: { _partner_user_id: string; _tournament_category_id: string }
-        Returns: string
-      }
+      request_pair_registration:
+        | {
+            Args: { _partner_user_id: string; _tournament_category_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              _availability?: string
+              _partner_user_id: string
+              _tournament_category_id: string
+            }
+            Returns: string
+          }
       search_players: {
         Args: { _q: string }
         Returns: {
