@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal } from "lucide-react";
+import { Seo } from "@/components/Seo";
 import type { Tables } from "@/integrations/supabase/types";
 
 type RankRow = {
@@ -41,6 +42,11 @@ export default function Ranking() {
 
   return (
     <AppLayout>
+      <Seo
+        title="Ranking de Pádel — Off-Side"
+        description="Tabla de posiciones de jugadores de pádel por categoría: puntos acumulados, torneos jugados y títulos."
+        path="/ranking"
+      />
       <div className="max-w-[1000px] mx-auto p-4 md:p-8">
         <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
           <div>
@@ -48,7 +54,7 @@ export default function Ranking() {
             <p className="text-sm text-muted-foreground">Puntos acumulados por jugador.</p>
           </div>
           <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[220px]" aria-label="Filtrar ranking por categoría"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
               {categories.map((c) => (
