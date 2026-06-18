@@ -3,10 +3,20 @@ import { ArrowRight, Trophy, Users, Calendar, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { OffsideLogo } from "@/components/OffsideLogo";
+import { Seo } from "@/components/Seo";
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <Seo
+        title="Off-Side — Torneos y ranking de pádel"
+        description="Organizá e inscribite a torneos de pádel, seguí el ranking de tu categoría y tu historial de partidos en Off-Side."
+        path="/"
+        jsonLd={[
+          { "@context": "https://schema.org", "@type": "Organization", name: "Off-Side", url: "https://offsidepdel.lovable.app" },
+          { "@context": "https://schema.org", "@type": "WebSite", name: "Off-Side", url: "https://offsidepdel.lovable.app" },
+        ]}
+      />
       {/* Nav */}
       <nav className="sticky top-0 z-50 w-full bg-background/85 backdrop-blur border-b border-border">
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-4 sm:px-6">
@@ -21,6 +31,7 @@ const Landing = () => {
         </div>
       </nav>
 
+      <main>
       {/* Hero */}
       <section className="relative px-4 sm:px-6 pt-12 sm:pt-16 pb-16 sm:pb-20">
         <div className="mx-auto max-w-[1200px] grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
@@ -84,6 +95,7 @@ const Landing = () => {
       <footer className="px-6 py-8 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} Off-Side
       </footer>
+      </main>
     </div>
   );
 };
