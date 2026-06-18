@@ -1,0 +1,12 @@
+# Off-Side
+
+> Plataforma para organizar e inscribirse a torneos de pádel, seguir el ranking por categoría y consultar el historial de partidos.
+
+Off-Side ayuda a jugadores y clubes a gestionar torneos de pádel (Americano y Eliminatorio), aprobar parejas, generar fixtures y mantener un ranking por categoría.
+
+## Pages
+
+- [Inicio](/): Resumen del producto y acceso a torneos.
+- [Torneos](/tournaments): Listado de torneos disponibles con filtros por estado y categoría.
+- [Ranking](/ranking): Tabla de posiciones de jugadores por categoría.
+- [Ingresar](/auth): Registro e inicio de sesión.
