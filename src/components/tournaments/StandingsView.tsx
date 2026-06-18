@@ -8,13 +8,15 @@ type Standing = {
   sets_for: number; sets_against: number; games_for: number; games_against: number; points: number;
 };
 
-export function StandingsView({ tournamentId }: { tournamentId: string }) {
+export function StandingsView({ tournamentId, tournamentCategoryId }: { tournamentId: string; tournamentCategoryId?: string }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [standings, setStandings] = useState<Map<string, Standing[]>>(new Map());
   const [pairs, setPairs] = useState<Map<string, string>>(new Map());
 
   const load = useCallback(async () => {
-    const { data: g } = await supabase.from("tournament_groups").select("id, name").eq("tournament_id", tournamentId).order("position");
+    let gq = supabase.from("tournament_groups").select("id, name").eq("tournament_id", tournamentId).order("position");
+    if (tournamentCategoryId) gq = gq.eq("tournament_category_id", tournamentCategoryId);
+    const { data: g } = await gq;
     setGroups(g ?? []);
     if (!g || g.length === 0) return;
     const groupIds = g.map((x) => x.id);
@@ -39,7 +41,7 @@ export function StandingsView({ tournamentId }: { tournamentId: string }) {
     const pm = new Map<string, string>();
     (p ?? []).forEach((pr: any) => pm.set(pr.id, `${nm.get(pr.player1_id) ?? "?"} / ${nm.get(pr.player2_id) ?? "?"}`));
     setPairs(pm);
-  }, [tournamentId]);
+  }, [tournamentId, tournamentCategoryId]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
