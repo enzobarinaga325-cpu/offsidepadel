@@ -28,6 +28,8 @@ type Row = {
   status: RegistrationStatus;
   registered_at: string;
   pair_id: string;
+  tournament_id: string;
+  tournament_name: string | null;
   tournament_category_id: string | null;
   approval_reason: string | null;
   admin_comment: string | null;
