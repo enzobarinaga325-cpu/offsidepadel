@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { lovable } from "@/integrations/lovable/index";
 import { OffsideLogo } from "@/components/OffsideLogo";
+import { Seo } from "@/components/Seo";
 
 export default function Auth() {
   const { user, loading, signIn, signUp } = useAuth();
@@ -86,13 +87,19 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Seo
+        title="Ingresar — Off-Side"
+        description="Iniciá sesión o creá tu cuenta en Off-Side para inscribirte a torneos de pádel y seguir tu ranking."
+        path="/auth"
+      />
       <div className="w-full max-w-[420px] border border-border rounded-lg p-6 sm:p-8 space-y-6 bg-card">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
-          <Link to="/" className="flex items-center justify-center bg-black rounded-md px-4 py-3 hover:opacity-90 transition-opacity">
+          <Link to="/" className="flex items-center justify-center bg-black rounded-md px-4 py-3 hover:opacity-90 transition-opacity" aria-label="Off-Side inicio">
             <OffsideLogo height={32} className="[filter:none] dark:[filter:none]" />
           </Link>
+          <h1 className="text-base font-semibold text-center">Ingresar a Off-Side</h1>
           <p className="text-[13px] text-muted-foreground text-center">Torneos y ranking de pádel</p>
         </div>
 
@@ -186,6 +193,6 @@ export default function Auth() {
           © {new Date().getFullYear()} Off-Side
         </p>
       </div>
-    </div>
+    </main>
   );
 }
