@@ -257,6 +257,26 @@ export default function AdminPlayers() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 shrink-0"
+                        title="Restablecer PIN"
+                        onClick={() => resetPin(p.user_id)}
+                        disabled={savingId === p.user_id}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 shrink-0"
+                        title={p.is_active === false ? "Reactivar" : "Desactivar"}
+                        onClick={() => toggleActive(p.user_id, p.is_active)}
+                        disabled={savingId === p.user_id}
+                      >
+                        {p.is_active === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4 text-destructive" />}
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -264,6 +284,23 @@ export default function AdminPlayers() {
             })}
           </div>
         )}
+
+        <AlertDialog open={!!resetForId} onOpenChange={(o) => !o && (setResetForId(null), setTempPin(null))}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>PIN restablecido</AlertDialogTitle>
+              <AlertDialogDescription>
+                Nuevo PIN temporal para el usuario:
+                <div className="mt-3 text-center text-3xl font-mono tracking-[0.5em] text-foreground">{tempPin}</div>
+                <p className="mt-3 text-xs">Compartilo con el usuario. Podrá ingresar con este PIN y luego solicitar uno nuevo.</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cerrar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => navigator.clipboard?.writeText(tempPin ?? "")}>Copiar PIN</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
