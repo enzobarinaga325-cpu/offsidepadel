@@ -5,15 +5,26 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
 
+interface PhoneRegisterData {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  pin: string;
+  categoryId: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, data: { firstName: string; lastName: string; phone: string }) => Promise<void>;
+  // Admin (legacy email/password) — unchanged
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  // Phone+PIN flow for regular users
+  signInWithPhone: (phone: string, pin: string) => Promise<void>;
+  registerWithPhone: (data: PhoneRegisterData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,7 +70,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // Realtime: keep profile (incl. category_id) in sync when the admin updates it.
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -75,28 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user?.id]);
 
-  const signUp = async (
-    email: string,
-    password: string,
-    data: { firstName: string; lastName: string; phone: string }
-  ) => {
-    const fullName = `${data.firstName} ${data.lastName}`.trim();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          first_name: data.firstName,
-          last_name: data.lastName,
-          phone: data.phone,
-        },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    if (error) throw error;
-  };
-
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
@@ -111,8 +99,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) await fetchProfile(user.id);
   };
 
+  const signInWithPhone = async (phone: string, pin: string) => {
+    const { data, error } = await supabase.functions.invoke("phone-login", {
+      body: { phone, pin },
+    });
+    if (error) {
+      // Try to extract message from the function response body
+      const ctx: any = (error as any).context;
+      let msg = error.message;
+      try {
+        if (ctx?.body) {
+          const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+          if (parsed?.error) msg = parsed.error;
+        }
+      } catch { /* ignore */ }
+      throw new Error(msg);
+    }
+    if (data?.error) throw new Error(data.error);
+    if (!data?.access_token || !data?.refresh_token) throw new Error("Respuesta inválida del servidor.");
+    const { error: setErr } = await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
+    if (setErr) throw setErr;
+  };
+
+  const registerWithPhone = async (d: PhoneRegisterData) => {
+    const { data, error } = await supabase.functions.invoke("phone-register", { body: d });
+    if (error) {
+      const ctx: any = (error as any).context;
+      let msg = error.message;
+      try {
+        if (ctx?.body) {
+          const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+          if (parsed?.error) msg = parsed.error;
+        }
+      } catch { /* ignore */ }
+      throw new Error(msg);
+    }
+    if (data?.error) throw new Error(data.error);
+    // Auto sign-in
+    await signInWithPhone(d.phone, d.pin);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{ user, session, profile, loading, signIn, signOut, refreshProfile, signInWithPhone, registerWithPhone }}
+    >
       {children}
     </AuthContext.Provider>
   );
