@@ -28,6 +28,8 @@ type Row = {
   status: RegistrationStatus;
   registered_at: string;
   pair_id: string;
+  tournament_id: string;
+  tournament_name: string | null;
   tournament_category_id: string | null;
   approval_reason: string | null;
   admin_comment: string | null;
@@ -48,6 +50,7 @@ export default function AdminRegistrations() {
   const [tournament, setTournament] = useState<Tables<"tournaments"> | null>(null);
   const [cats, setCats] = useState<TCat[]>([]);
   const [activeCatId, setActiveCatId] = useState<string>("all");
+  const ALL = "__all__";
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -56,7 +59,7 @@ export default function AdminRegistrations() {
   useEffect(() => {
     void supabase.from("tournaments").select("*").order("start_date", { ascending: false }).then(({ data }) => {
       setTournaments(data ?? []);
-      if (!selectedId && data && data[0]) setSelectedId(data[0].id);
+      if (!selectedId) setSelectedId(ALL);
     });
   }, []);
 
@@ -66,14 +69,27 @@ export default function AdminRegistrations() {
 
   async function load(tid: string) {
     setLoading(true);
-    const [{ data: t }, { data: tc }, { data: regs }] = await Promise.all([
-      supabase.from("tournaments").select("*").eq("id", tid).maybeSingle(),
-      supabase.from("tournament_categories").select("*, category:categories(*)").eq("tournament_id", tid).order("position"),
-      supabase.from("registrations")
-        .select("id, status, registered_at, pair_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
-        .eq("tournament_id", tid)
-        .order("registered_at", { ascending: true }),
+    const isAll = tid === ALL;
+    const [tRes, tcRes, regsRes] = await Promise.all([
+      isAll
+        ? Promise.resolve({ data: null })
+        : supabase.from("tournaments").select("*").eq("id", tid).maybeSingle(),
+      isAll
+        ? supabase.from("tournament_categories").select("*, category:categories(*)").order("position")
+        : supabase.from("tournament_categories").select("*, category:categories(*)").eq("tournament_id", tid).order("position"),
+      (isAll
+        ? supabase.from("registrations")
+            .select("id, status, registered_at, pair_id, tournament_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
+            .order("registered_at", { ascending: false })
+        : supabase.from("registrations")
+            .select("id, status, registered_at, pair_id, tournament_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
+            .eq("tournament_id", tid)
+            .order("registered_at", { ascending: false })
+      ),
     ]);
+    const t = (tRes as any).data;
+    const tc = (tcRes as any).data;
+    const regs = (regsRes as any).data;
     setTournament(t);
     setCats((tc ?? []) as TCat[]);
 
@@ -88,9 +104,14 @@ export default function AdminRegistrations() {
     (profs ?? []).forEach((p: any) => map.set(p.user_id, {
       full_name: p.full_name, cat: p.category?.name ?? null,
     }));
+    const tMap = new Map<string, string>();
+    tournaments.forEach((tt) => tMap.set(tt.id, tt.name));
+    if (t) tMap.set(t.id, t.name);
 
     setRows((regs ?? []).map((r: any) => ({
       id: r.id, status: r.status, registered_at: r.registered_at, pair_id: r.pair_id,
+      tournament_id: r.tournament_id,
+      tournament_name: tMap.get(r.tournament_id) ?? null,
       tournament_category_id: r.tournament_category_id,
       approval_reason: r.approval_reason, admin_comment: r.admin_comment,
       availability: r.availability ?? null,
@@ -149,6 +170,7 @@ export default function AdminRegistrations() {
           <Select value={selectedId} onValueChange={setSelectedId}>
             <SelectTrigger className="w-full md:w-[320px]"><SelectValue placeholder="Elegí un torneo" /></SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL}>Todos los torneos</SelectItem>
               {tournaments.map((t) => <SelectItem key={t.id} value={t.id}>{t.name} · {formatDate(t.start_date)}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -170,18 +192,18 @@ export default function AdminRegistrations() {
           </div>
         )}
 
-        {tournament && (
-          <Card className="p-4 mb-4 flex flex-wrap gap-2 text-xs items-center">
-            <Stat label="Total" value={filtered.length} />
-            <Stat label="Pendientes" value={counts.pending ?? 0} />
-            <Stat label="Aprobadas" value={counts.approved ?? 0} />
-            <Stat label="Rechazadas" value={counts.rejected ?? 0} />
-            {activeCat && <Stat label="Cupos" value={`${counts.approved ?? 0}/${activeCat.max_pairs}`} />}
+        <Card className="p-4 mb-4 flex flex-wrap gap-2 text-xs items-center">
+          <Stat label="Total" value={filtered.length} />
+          <Stat label="Pendientes" value={counts.pending ?? 0} />
+          <Stat label="Aprobadas" value={counts.approved ?? 0} />
+          <Stat label="Rechazadas" value={counts.rejected ?? 0} />
+          {activeCat && <Stat label="Cupos" value={`${counts.approved ?? 0}/${activeCat.max_pairs}`} />}
+          {tournament && (
             <Button size="sm" className="ml-auto" onClick={() => setAddOpen(true)}>
               <UserPlus className="h-4 w-4 mr-1" />Agregar pareja
             </Button>
-          </Card>
-        )}
+          )}
+        </Card>
 
         {loading ? (
           <div className="text-sm text-muted-foreground">Cargando…</div>
@@ -205,6 +227,7 @@ export default function AdminRegistrations() {
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground">
+                        {selectedId === ALL && r.tournament_name && <><span className="font-medium text-foreground">{r.tournament_name}</span> · </>}
                         {r.player1_cat ?? "sin cat."} · {r.player2_cat ?? "sin cat."} · Inscripta {formatDate(r.registered_at)}
                       </div>
                       {needsReview && (
