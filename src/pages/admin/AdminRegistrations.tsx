@@ -59,7 +59,7 @@ export default function AdminRegistrations() {
   useEffect(() => {
     void supabase.from("tournaments").select("*").order("start_date", { ascending: false }).then(({ data }) => {
       setTournaments(data ?? []);
-      if (!selectedId && data && data[0]) setSelectedId(data[0].id);
+      if (!selectedId) setSelectedId(ALL);
     });
   }, []);
 
