@@ -170,6 +170,7 @@ export default function AdminRegistrations() {
           <Select value={selectedId} onValueChange={setSelectedId}>
             <SelectTrigger className="w-full md:w-[320px]"><SelectValue placeholder="Elegí un torneo" /></SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL}>Todos los torneos</SelectItem>
               {tournaments.map((t) => <SelectItem key={t.id} value={t.id}>{t.name} · {formatDate(t.start_date)}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -191,18 +192,18 @@ export default function AdminRegistrations() {
           </div>
         )}
 
-        {tournament && (
-          <Card className="p-4 mb-4 flex flex-wrap gap-2 text-xs items-center">
-            <Stat label="Total" value={filtered.length} />
-            <Stat label="Pendientes" value={counts.pending ?? 0} />
-            <Stat label="Aprobadas" value={counts.approved ?? 0} />
-            <Stat label="Rechazadas" value={counts.rejected ?? 0} />
-            {activeCat && <Stat label="Cupos" value={`${counts.approved ?? 0}/${activeCat.max_pairs}`} />}
+        <Card className="p-4 mb-4 flex flex-wrap gap-2 text-xs items-center">
+          <Stat label="Total" value={filtered.length} />
+          <Stat label="Pendientes" value={counts.pending ?? 0} />
+          <Stat label="Aprobadas" value={counts.approved ?? 0} />
+          <Stat label="Rechazadas" value={counts.rejected ?? 0} />
+          {activeCat && <Stat label="Cupos" value={`${counts.approved ?? 0}/${activeCat.max_pairs}`} />}
+          {tournament && (
             <Button size="sm" className="ml-auto" onClick={() => setAddOpen(true)}>
               <UserPlus className="h-4 w-4 mr-1" />Agregar pareja
             </Button>
-          </Card>
-        )}
+          )}
+        </Card>
 
         {loading ? (
           <div className="text-sm text-muted-foreground">Cargando…</div>
