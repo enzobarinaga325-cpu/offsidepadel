@@ -227,6 +227,7 @@ export default function AdminRegistrations() {
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground">
+                        {selectedId === ALL && r.tournament_name && <><span className="font-medium text-foreground">{r.tournament_name}</span> · </>}
                         {r.player1_cat ?? "sin cat."} · {r.player2_cat ?? "sin cat."} · Inscripta {formatDate(r.registered_at)}
                       </div>
                       {needsReview && (
