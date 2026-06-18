@@ -1,4 +1,4 @@
-import { Trophy, User, Shield, LogOut, BarChart3 } from "lucide-react";
+import { Trophy, User, Shield, LogOut, BarChart3, Mail } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { OffsideLogo } from "@/components/OffsideLogo";
 const baseNav = [
   { icon: Trophy, label: "Torneos", path: "/tournaments" },
   { icon: BarChart3, label: "Ranking", path: "/ranking" },
+  { icon: Mail, label: "Invitaciones", path: "/my-invitations" },
   { icon: User, label: "Mi perfil", path: "/me" },
 ];
 
