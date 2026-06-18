@@ -549,12 +549,17 @@ export type Database = {
           avatar_url: string | null
           category_id: string | null
           created_at: string
+          failed_pin_attempts: number
           first_name: string | null
           full_name: string
           id: string
+          is_active: boolean
           job_title: string | null
+          last_login_at: string | null
           last_name: string | null
+          locked_until: string | null
           phone: string | null
+          phone_e164: string | null
           updated_at: string
           user_id: string
         }
@@ -562,12 +567,17 @@ export type Database = {
           avatar_url?: string | null
           category_id?: string | null
           created_at?: string
+          failed_pin_attempts?: number
           first_name?: string | null
           full_name?: string
           id?: string
+          is_active?: boolean
           job_title?: string | null
+          last_login_at?: string | null
           last_name?: string | null
+          locked_until?: string | null
           phone?: string | null
+          phone_e164?: string | null
           updated_at?: string
           user_id: string
         }
@@ -575,12 +585,17 @@ export type Database = {
           avatar_url?: string | null
           category_id?: string | null
           created_at?: string
+          failed_pin_attempts?: number
           first_name?: string | null
           full_name?: string
           id?: string
+          is_active?: boolean
           job_title?: string | null
+          last_login_at?: string | null
           last_name?: string | null
+          locked_until?: string | null
           phone?: string | null
+          phone_e164?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1034,8 +1049,21 @@ export type Database = {
       }
     }
     Functions: {
+      admin_set_user_active: {
+        Args: { _active: boolean; _user_id: string }
+        Returns: undefined
+      }
       admin_set_user_category: {
         Args: { _category_id: string; _user_id: string }
+        Returns: undefined
+      }
+      admin_update_user_profile: {
+        Args: {
+          _first_name: string
+          _last_name: string
+          _phone: string
+          _user_id: string
+        }
         Returns: undefined
       }
       finalize_tournament: {
@@ -1075,6 +1103,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_phone: { Args: { _phone: string }; Returns: string }
       notify_pair: {
         Args: {
           _body: string
@@ -1083,6 +1112,23 @@ export type Database = {
           _title: string
           _type: string
         }
+        Returns: undefined
+      }
+      phone_login_precheck: {
+        Args: { _phone: string }
+        Returns: {
+          active: boolean
+          lock_until: string
+          locked: boolean
+          user_id: string
+        }[]
+      }
+      phone_login_register_failure: {
+        Args: { _phone: string }
+        Returns: string
+      }
+      phone_login_register_success: {
+        Args: { _phone: string }
         Returns: undefined
       }
       recompute_standings: { Args: { _group_id: string }; Returns: undefined }

@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, Search, Loader2, ArrowUp, ArrowDown, KeyRound, UserX, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type Player = {
   user_id: string;
@@ -19,6 +20,7 @@ type Player = {
   phone: string | null;
   avatar_url: string | null;
   category_id: string | null;
+  is_active: boolean | null;
 };
 type Category = { id: string; name: string; level: string | null };
 
@@ -36,7 +38,7 @@ export default function AdminPlayers() {
     setLoading(true);
     const [{ data: cats }, { data: profs }] = await Promise.all([
       supabase.from("categories").select("id, name, level").order("name"),
-      supabase.from("profiles").select("user_id, full_name, first_name, last_name, phone, avatar_url, category_id").order("full_name"),
+      supabase.from("profiles").select("user_id, full_name, first_name, last_name, phone, avatar_url, category_id, is_active").order("full_name"),
     ]);
     setCategories(cats ?? []);
     setPlayers((profs ?? []) as Player[]);
@@ -123,6 +125,37 @@ export default function AdminPlayers() {
     void setCategory(userId, next.id);
   }
 
+  const [resetForId, setResetForId] = useState<string | null>(null);
+  const [tempPin, setTempPin] = useState<string | null>(null);
+
+  async function resetPin(userId: string) {
+    setSavingId(userId);
+    const { data, error } = await supabase.functions.invoke("admin-reset-pin", {
+      body: { userId },
+    });
+    setSavingId(null);
+    if (error || data?.error) {
+      toast({ title: "Error", description: error?.message || data?.error, variant: "destructive" });
+      return;
+    }
+    setTempPin(data.pin);
+    setResetForId(userId);
+  }
+
+  async function toggleActive(userId: string, current: boolean | null) {
+    setSavingId(userId);
+    const { error } = await supabase.rpc("admin_set_user_active", {
+      _user_id: userId,
+      _active: !(current ?? true),
+    });
+    setSavingId(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: current === false ? "Usuario reactivado" : "Usuario desactivado" });
+  }
+
   return (
     <AppLayout>
       <div className="max-w-[1000px] mx-auto p-4 md:p-8">
@@ -176,11 +209,14 @@ export default function AdminPlayers() {
                             "Sin celular"
                           )}
                         </div>
-                        <div className="mt-1">
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
                           {cat ? (
                             <Badge variant="secondary" className="text-[11px]">{cat.name}</Badge>
                           ) : (
                             <Badge variant="outline" className="text-[11px] text-muted-foreground">Sin categoría</Badge>
+                          )}
+                          {p.is_active === false && (
+                            <Badge variant="destructive" className="text-[11px]">Desactivado</Badge>
                           )}
                         </div>
                       </div>
@@ -221,6 +257,26 @@ export default function AdminPlayers() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 shrink-0"
+                        title="Restablecer PIN"
+                        onClick={() => resetPin(p.user_id)}
+                        disabled={savingId === p.user_id}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 shrink-0"
+                        title={p.is_active === false ? "Reactivar" : "Desactivar"}
+                        onClick={() => toggleActive(p.user_id, p.is_active)}
+                        disabled={savingId === p.user_id}
+                      >
+                        {p.is_active === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4 text-destructive" />}
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -228,6 +284,23 @@ export default function AdminPlayers() {
             })}
           </div>
         )}
+
+        <AlertDialog open={!!resetForId} onOpenChange={(o) => !o && (setResetForId(null), setTempPin(null))}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>PIN restablecido</AlertDialogTitle>
+              <AlertDialogDescription>
+                Nuevo PIN temporal para el usuario:
+                <div className="mt-3 text-center text-3xl font-mono tracking-[0.5em] text-foreground">{tempPin}</div>
+                <p className="mt-3 text-xs">Compartilo con el usuario. Podrá ingresar con este PIN y luego solicitar uno nuevo.</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cerrar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => navigator.clipboard?.writeText(tempPin ?? "")}>Copiar PIN</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

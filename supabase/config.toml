@@ -1,1 +1,10 @@
 project_id = "ehrvqzntcueuuepnjgeq"
+
+[functions.phone-register]
+verify_jwt = false
+
+[functions.phone-login]
+verify_jwt = false
+
+[functions.admin-reset-pin]
+verify_jwt = true

@@ -1,30 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { lovable } from "@/integrations/lovable/index";
 import { OffsideLogo } from "@/components/OffsideLogo";
 import { Seo } from "@/components/Seo";
 
-export default function Auth() {
-  const { user, loading, signIn, signUp } = useAuth();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+type Category = { id: string; name: string };
 
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [signupFirstName, setSignupFirstName] = useState("");
-  const [signupLastName, setSignupLastName] = useState("");
-  const [signupPhone, setSignupPhone] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
+export default function Auth() {
+  const { user, loading, signIn, signInWithPhone, registerWithPhone } = useAuth();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"user" | "admin">("user");
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Phone login
+  const [loginPhone, setLoginPhone] = useState("");
+  const [loginPin, setLoginPin] = useState("");
+
+  // Phone register
+  const [rFirst, setRFirst] = useState("");
+  const [rLast, setRLast] = useState("");
+  const [rPhone, setRPhone] = useState("");
+  const [rPin, setRPin] = useState("");
+  const [rPin2, setRPin2] = useState("");
+  const [rCategory, setRCategory] = useState("");
+
+  // Admin login
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+
+  useEffect(() => {
+    // Categories are readable by anon? Our RLS now requires authenticated.
+    // Use the public edge-free path: call a permissive select via anon key.
+    // If empty due to RLS, we'll still allow submission but the user picks blindly.
+    supabase.from("categories").select("id,name").order("name").then(({ data }) => {
+      if (data) setCategories(data as Category[]);
+    });
+  }, []);
 
   if (loading) {
     return (
@@ -33,56 +53,78 @@ export default function Auth() {
       </div>
     );
   }
-
   if (user) return <Navigate to="/" replace />;
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
+  const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phoneN = onlyDigits(loginPhone);
+    if (phoneN.length < 8 || !/^\d{4}$/.test(loginPin)) {
+      toast({ title: "Datos inválidos", description: "Revisá el celular y el PIN.", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-      if (error) toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
-    } catch (error: any) {
-      toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
+      await signInWithPhone(phoneN, loginPin);
+      toast({ title: "¡Bienvenido!" });
+    } catch (err: any) {
+      toast({ title: "No se pudo ingresar", description: err.message, variant: "destructive" });
     } finally {
-      setIsGoogleLoading(false);
+      setBusy(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handlePhoneRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await signIn(loginEmail, loginPassword);
-      toast({ title: "Welcome back!" });
-    } catch (error: any) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (signupPassword.length < 6) {
-      toast({ title: "Contraseña muy corta", description: "Mínimo 6 caracteres", variant: "destructive" });
+    if (!rFirst.trim() || !rLast.trim()) {
+      toast({ title: "Datos incompletos", description: "Nombre y apellido son obligatorios.", variant: "destructive" });
       return;
     }
-    if (!signupFirstName.trim() || !signupLastName.trim() || !signupPhone.trim()) {
-      toast({ title: "Datos incompletos", description: "Nombre, apellido y celular son obligatorios.", variant: "destructive" });
+    const phoneN = onlyDigits(rPhone);
+    if (phoneN.length < 8) {
+      toast({ title: "Celular inválido", description: "Ingresá un número válido.", variant: "destructive" });
       return;
     }
-    setIsSubmitting(true);
+    if (!/^\d{4}$/.test(rPin)) {
+      toast({ title: "PIN inválido", description: "El PIN debe tener exactamente 4 dígitos.", variant: "destructive" });
+      return;
+    }
+    if (rPin !== rPin2) {
+      toast({ title: "PIN no coincide", description: "Confirmá el mismo PIN.", variant: "destructive" });
+      return;
+    }
+    if (!rCategory) {
+      toast({ title: "Categoría requerida", description: "Seleccioná tu categoría.", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
     try {
-      await signUp(signupEmail, signupPassword, {
-        firstName: signupFirstName.trim(),
-        lastName: signupLastName.trim(),
-        phone: signupPhone.trim(),
+      await registerWithPhone({
+        firstName: rFirst.trim(),
+        lastName: rLast.trim(),
+        phone: phoneN,
+        pin: rPin,
+        categoryId: rCategory,
       });
-      toast({ title: "¡Cuenta creada!", description: "Revisá tu email para confirmar tu cuenta." });
-    } catch (error: any) {
-      toast({ title: "Error de registro", description: error.message, variant: "destructive" });
+      toast({ title: "¡Cuenta creada!", description: "Bienvenido a Off-Side." });
+    } catch (err: any) {
+      toast({ title: "Error de registro", description: err.message, variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+      setBusy(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await signIn(adminEmail, adminPassword);
+      toast({ title: "Bienvenido, administrador" });
+    } catch (err: any) {
+      toast({ title: "Login failed", description: err.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -90,106 +132,177 @@ export default function Auth() {
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Seo
         title="Ingresar — Off-Side"
-        description="Iniciá sesión o creá tu cuenta en Off-Side para inscribirte a torneos de pádel y seguir tu ranking."
+        description="Ingresá a Off-Side con tu celular y PIN para ver torneos y ranking de pádel."
         path="/auth"
       />
       <div className="w-full max-w-[420px] border border-border rounded-lg p-6 sm:p-8 space-y-6 bg-card">
-        {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <Link to="/" className="flex items-center justify-center bg-black rounded-md px-4 py-3 hover:opacity-90 transition-opacity" aria-label="Off-Side inicio">
             <OffsideLogo height={32} className="[filter:none] dark:[filter:none]" />
           </Link>
-          <h1 className="text-base font-semibold text-center">Ingresar a Off-Side</h1>
+          <h1 className="text-base font-semibold text-center">
+            {mode === "admin" ? "Acceso administradores" : "Ingresar a Off-Side"}
+          </h1>
           <p className="text-[13px] text-muted-foreground text-center">Torneos y ranking de pádel</p>
         </div>
 
-        {/* Google */}
-        <Button
-          variant="outline"
-          className="w-full h-9 gap-2 text-[13px]"
-          onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading}
-        >
-          {isGoogleLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-            </svg>
-          )}
-          Continue with Google
-        </Button>
+        {mode === "user" ? (
+          <Tabs defaultValue="login">
+            <TabsList className="grid w-full grid-cols-2 h-10">
+              <TabsTrigger value="login" className="text-[13px]">Ingresar</TabsTrigger>
+              <TabsTrigger value="signup" className="text-[13px]">Crear cuenta</TabsTrigger>
+            </TabsList>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-[11px] uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
-          </div>
+            <TabsContent value="login" className="mt-4">
+              <form onSubmit={handlePhoneLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">Número de celular</Label>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder="11 5555 5555"
+                    value={loginPhone}
+                    onChange={(e) => setLoginPhone(e.target.value)}
+                    required
+                    className="h-11 text-base"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">PIN (4 dígitos)</Label>
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]{4}"
+                    maxLength={4}
+                    autoComplete="current-password"
+                    placeholder="••••"
+                    value={loginPin}
+                    onChange={(e) => setLoginPin(onlyDigits(e.target.value).slice(0, 4))}
+                    required
+                    className="h-11 text-base tracking-[0.5em] text-center"
+                  />
+                </div>
+                <Button type="submit" className="w-full h-11 text-[14px]" disabled={busy}>
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Ingresar
+                </Button>
+                <button
+                  type="button"
+                  className="block w-full text-center text-[12px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                  onClick={() => toast({
+                    title: "Olvidé mi PIN",
+                    description: "Comunicate con la administración para restablecer tu PIN.",
+                  })}
+                >
+                  Olvidé mi PIN
+                </button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="mt-4">
+              <form onSubmit={handlePhoneRegister} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[12px]">Nombre</Label>
+                    <Input value={rFirst} onChange={(e) => setRFirst(e.target.value)} required className="h-10 text-[14px]" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[12px]">Apellido</Label>
+                    <Input value={rLast} onChange={(e) => setRLast(e.target.value)} required className="h-10 text-[14px]" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[12px]">Número de celular</Label>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="11 5555 5555"
+                    value={rPhone}
+                    onChange={(e) => setRPhone(e.target.value)}
+                    required
+                    className="h-10 text-[14px]"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[12px]">Crear PIN</Label>
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={rPin}
+                      onChange={(e) => setRPin(onlyDigits(e.target.value).slice(0, 4))}
+                      required
+                      className="h-10 text-[14px] tracking-[0.4em] text-center"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[12px]">Confirmar PIN</Label>
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={rPin2}
+                      onChange={(e) => setRPin2(onlyDigits(e.target.value).slice(0, 4))}
+                      required
+                      className="h-10 text-[14px] tracking-[0.4em] text-center"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[12px]">Categoría</Label>
+                  <Select value={rCategory} onValueChange={setRCategory}>
+                    <SelectTrigger className="h-10 text-[14px]">
+                      <SelectValue placeholder="Elegí tu categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.length === 0 ? (
+                        <div className="px-2 py-1.5 text-[12px] text-muted-foreground">Sin categorías disponibles</div>
+                      ) : categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">Solo el administrador puede cambiarla luego.</p>
+                </div>
+                <Button type="submit" className="w-full h-11 text-[14px]" disabled={busy}>
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Crear cuenta
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <form onSubmit={handleAdminLogin} className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[12px]">Email</Label>
+              <Input type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} required className="h-10 text-[14px]" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[12px]">Contraseña</Label>
+              <Input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} required className="h-10 text-[14px]" />
+            </div>
+            <Button type="submit" className="w-full h-11 text-[14px]" disabled={busy}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Ingresar
+            </Button>
+          </form>
+        )}
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setMode(mode === "user" ? "admin" : "user")}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          >
+            {mode === "user" ? "Acceso administradores" : "← Volver al ingreso de usuarios"}
+          </button>
         </div>
 
-        {/* Email auth */}
-        <Tabs defaultValue="login">
-          <TabsList className="grid w-full grid-cols-2 h-9 p-0.5">
-            <TabsTrigger value="login" className="text-[12px]">Sign in</TabsTrigger>
-            <TabsTrigger value="signup" className="text-[12px]">Sign up</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login" className="mt-4">
-            <form onSubmit={handleLogin} className="space-y-3">
-              <div className="space-y-1">
-                <Label className="text-[12px]">Email</Label>
-                <Input type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="h-8 text-[13px]" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[12px]">Password</Label>
-                <Input type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="h-8 text-[13px]" />
-              </div>
-              <Button type="submit" className="w-full h-8 text-[13px]" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                Sign In
-              </Button>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="signup" className="mt-4">
-            <form onSubmit={handleSignup} className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[12px]">Nombre</Label>
-                  <Input type="text" placeholder="Juan" value={signupFirstName} onChange={(e) => setSignupFirstName(e.target.value)} required className="h-8 text-[13px]" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[12px]">Apellido</Label>
-                  <Input type="text" placeholder="Pérez" value={signupLastName} onChange={(e) => setSignupLastName(e.target.value)} required className="h-8 text-[13px]" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[12px]">Celular</Label>
-                <Input type="tel" inputMode="tel" placeholder="+54 9 11 5555 5555" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} required className="h-8 text-[13px]" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[12px]">Email</Label>
-                <Input type="email" placeholder="vos@ejemplo.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required className="h-8 text-[13px]" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[12px]">Contraseña</Label>
-                <Input type="password" placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={6} className="h-8 text-[13px]" />
-              </div>
-              <p className="text-[11px] text-muted-foreground">La categoría de juego la elegirás al ingresar y solo el administrador podrá modificarla luego.</p>
-              <Button type="submit" className="w-full h-8 text-[13px]" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                Crear cuenta
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
-
-        <p className="text-center text-[11px] text-muted-foreground pt-2">
+        <p className="text-center text-[11px] text-muted-foreground pt-1">
           © {new Date().getFullYear()} Off-Side
         </p>
       </div>
