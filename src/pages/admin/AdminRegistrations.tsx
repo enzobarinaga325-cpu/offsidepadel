@@ -50,6 +50,7 @@ export default function AdminRegistrations() {
   const [tournament, setTournament] = useState<Tables<"tournaments"> | null>(null);
   const [cats, setCats] = useState<TCat[]>([]);
   const [activeCatId, setActiveCatId] = useState<string>("all");
+  const ALL = "__all__";
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
