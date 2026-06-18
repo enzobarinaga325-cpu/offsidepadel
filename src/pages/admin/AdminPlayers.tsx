@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, Search, Loader2, ArrowUp, ArrowDown, KeyRound, UserX, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type Player = {
   user_id: string;
@@ -19,6 +20,7 @@ type Player = {
   phone: string | null;
   avatar_url: string | null;
   category_id: string | null;
+  is_active: boolean | null;
 };
 type Category = { id: string; name: string; level: string | null };
 
