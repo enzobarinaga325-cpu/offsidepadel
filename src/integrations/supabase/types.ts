@@ -988,7 +988,50 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          category_id: string | null
+          created_at: string | null
+          first_name: string | null
+          full_name: string | null
+          job_title: string | null
+          last_name: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          job_title?: string | null
+          last_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          job_title?: string | null
+          last_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_set_user_category: {
