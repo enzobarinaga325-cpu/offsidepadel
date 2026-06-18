@@ -209,11 +209,14 @@ export default function AdminPlayers() {
                             "Sin celular"
                           )}
                         </div>
-                        <div className="mt-1">
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
                           {cat ? (
                             <Badge variant="secondary" className="text-[11px]">{cat.name}</Badge>
                           ) : (
                             <Badge variant="outline" className="text-[11px] text-muted-foreground">Sin categoría</Badge>
+                          )}
+                          {p.is_active === false && (
+                            <Badge variant="destructive" className="text-[11px]">Desactivado</Badge>
                           )}
                         </div>
                       </div>
