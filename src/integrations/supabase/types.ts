@@ -719,10 +719,15 @@ export type Database = {
       }
       registrations: {
         Row: {
+          admin_comment: string | null
           admin_notes: string | null
+          approval_reason: string | null
           created_at: string
           id: string
+          invited_by: string | null
+          level_diff: number | null
           pair_id: string
+          partner_confirmed: boolean
           registered_at: string
           registered_by: string | null
           reviewed_at: string | null
@@ -733,10 +738,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_comment?: string | null
           admin_notes?: string | null
+          approval_reason?: string | null
           created_at?: string
           id?: string
+          invited_by?: string | null
+          level_diff?: number | null
           pair_id: string
+          partner_confirmed?: boolean
           registered_at?: string
           registered_by?: string | null
           reviewed_at?: string | null
@@ -747,10 +757,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_comment?: string | null
           admin_notes?: string | null
+          approval_reason?: string | null
           created_at?: string
           id?: string
+          invited_by?: string | null
+          level_diff?: number | null
           pair_id?: string
+          partner_confirmed?: boolean
           registered_at?: string
           registered_by?: string | null
           reviewed_at?: string | null
@@ -1155,6 +1170,22 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_registration: {
+        Args: {
+          _player1: string
+          _player2: string
+          _tournament_category_id: string
+        }
+        Returns: string
+      }
+      admin_move_registration: {
+        Args: { _new_tournament_category_id: string; _registration_id: string }
+        Returns: undefined
+      }
+      admin_review_registration: {
+        Args: { _approve: boolean; _comment: string; _registration_id: string }
+        Returns: undefined
+      }
       admin_set_user_active: {
         Args: { _active: boolean; _user_id: string }
         Returns: undefined
@@ -1173,6 +1204,10 @@ export type Database = {
         Returns: undefined
       }
       category_level_int: { Args: { _level: string }; Returns: number }
+      confirm_partner: {
+        Args: { _accept: boolean; _registration_id: string }
+        Returns: undefined
+      }
       finalize_tournament: {
         Args: { _tournament_id: string }
         Returns: undefined
@@ -1219,6 +1254,10 @@ export type Database = {
         Returns: boolean
       }
       normalize_phone: { Args: { _phone: string }; Returns: string }
+      notify_admins: {
+        Args: { _body: string; _link: string; _title: string; _type: string }
+        Returns: undefined
+      }
       notify_pair: {
         Args: {
           _body: string
@@ -1247,6 +1286,21 @@ export type Database = {
         Returns: undefined
       }
       recompute_standings: { Args: { _group_id: string }; Returns: undefined }
+      request_pair_registration: {
+        Args: { _partner_user_id: string; _tournament_category_id: string }
+        Returns: string
+      }
+      search_players: {
+        Args: { _q: string }
+        Returns: {
+          avatar_url: string
+          category_gender: string
+          category_level: string
+          category_name: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       submit_match_result: {
         Args: { _match_id: string; _sets: Json; _walkover_winner?: string }
         Returns: undefined
