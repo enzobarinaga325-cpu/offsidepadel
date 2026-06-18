@@ -31,6 +31,7 @@ type Row = {
   tournament_category_id: string | null;
   approval_reason: string | null;
   admin_comment: string | null;
+  availability: string | null;
   partner_confirmed: boolean;
   player1_name: string | null;
   player2_name: string | null;
@@ -69,7 +70,7 @@ export default function AdminRegistrations() {
       supabase.from("tournaments").select("*").eq("id", tid).maybeSingle(),
       supabase.from("tournament_categories").select("*, category:categories(*)").eq("tournament_id", tid).order("position"),
       supabase.from("registrations")
-        .select("id, status, registered_at, pair_id, tournament_category_id, approval_reason, admin_comment, partner_confirmed, pairs!inner(player1_id, player2_id)")
+        .select("id, status, registered_at, pair_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
         .eq("tournament_id", tid)
         .order("registered_at", { ascending: true }),
     ]);
@@ -92,6 +93,7 @@ export default function AdminRegistrations() {
       id: r.id, status: r.status, registered_at: r.registered_at, pair_id: r.pair_id,
       tournament_category_id: r.tournament_category_id,
       approval_reason: r.approval_reason, admin_comment: r.admin_comment,
+      availability: r.availability ?? null,
       partner_confirmed: r.partner_confirmed,
       player1_name: map.get(r.pairs.player1_id)?.full_name ?? "—",
       player2_name: map.get(r.pairs.player2_id)?.full_name ?? "—",
@@ -209,6 +211,12 @@ export default function AdminRegistrations() {
                         <div className="mt-2 flex gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs">
                           <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                           <span>{r.approval_reason}</span>
+                        </div>
+                      )}
+                      {r.availability && (
+                        <div className="mt-2 rounded-md border border-border bg-muted/40 p-2 text-xs">
+                          <span className="font-medium text-foreground">Disponibilidad:</span>{" "}
+                          <span className="text-muted-foreground whitespace-pre-wrap">{r.availability}</span>
                         </div>
                       )}
                       {r.admin_comment && (
