@@ -5,9 +5,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MapPin, Users, Trophy, ArrowLeft, DollarSign, Clock } from "lucide-react";
+import { Calendar, MapPin, Users, Trophy, ArrowLeft, Clock, ArrowRight } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { FixtureView } from "@/components/tournaments/FixtureView";
 import { StandingsView } from "@/components/tournaments/StandingsView";
@@ -15,21 +14,25 @@ import {
   statusLabels,
   statusColors,
   tournamentTypeLabels,
+  tournamentCategoryLabel,
+  tournamentCategoryStatusLabels,
   formatDate,
   formatCurrency,
   type TournamentStatus,
+  type TournamentCategoryRow,
 } from "@/lib/tournament-helpers";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { useToast } from "@/hooks/use-toast";
 
-type Tournament = Tables<"tournaments"> & {
-  category: Tables<"categories"> | null;
-};
+type Tournament = Tables<"tournaments">;
+type CategoryRow = Tables<"categories">;
+type TCat = TournamentCategoryRow & { category: CategoryRow | null };
 
 type ApprovedPair = {
   pair_id: string;
+  tournament_category_id: string | null;
   player1_name: string | null;
   player2_name: string | null;
 };
@@ -41,9 +44,11 @@ export default function TournamentDetail() {
   const { toast } = useToast();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [cats, setCats] = useState<TCat[]>([]);
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [pairs, setPairs] = useState<ApprovedPair[]>([]);
   const [loading, setLoading] = useState(true);
-  const [myRegStatus, setMyRegStatus] = useState<string | null>(null);
+  const [myReg, setMyReg] = useState<{ status: string; tcat: string | null } | null>(null);
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
@@ -54,20 +59,23 @@ export default function TournamentDetail() {
     setLoading(true);
     const { data: t } = await supabase
       .from("tournaments")
-      .select("*, category:categories(*)")
+      .select("*")
       .eq("id", id!)
       .maybeSingle();
+    if (!t) { setLoading(false); return; }
+    setTournament(t);
 
-    if (!t) {
-      setLoading(false);
-      return;
-    }
-    setTournament(t as Tournament);
+    const { data: tc } = await supabase
+      .from("tournament_categories")
+      .select("*, category:categories(*)")
+      .eq("tournament_id", id!)
+      .order("position");
+    const catsData = (tc ?? []) as TCat[];
+    setCats(catsData);
 
-    // Approved pairs with player names
     const { data: regs } = await supabase
       .from("registrations")
-      .select("pair_id, pairs!inner(id, player1_id, player2_id)")
+      .select("pair_id, tournament_category_id, pairs!inner(id, player1_id, player2_id)")
       .eq("tournament_id", id!)
       .eq("status", "approved");
 
@@ -76,8 +84,7 @@ export default function TournamentDetail() {
       if (r.pairs?.player1_id) userIds.add(r.pairs.player1_id);
       if (r.pairs?.player2_id) userIds.add(r.pairs.player2_id);
     });
-
-    let nameMap = new Map<string, string>();
+    const nameMap = new Map<string, string>();
     if (userIds.size > 0) {
       const { data: profs } = await supabase
         .from("profiles")
@@ -85,10 +92,10 @@ export default function TournamentDetail() {
         .in("user_id", Array.from(userIds));
       (profs ?? []).forEach((p) => nameMap.set(p.user_id, p.full_name ?? "Jugador"));
     }
-
     setPairs(
       (regs ?? []).map((r: any) => ({
         pair_id: r.pair_id,
+        tournament_category_id: r.tournament_category_id,
         player1_name: nameMap.get(r.pairs.player1_id) ?? "Jugador",
         player2_name: nameMap.get(r.pairs.player2_id) ?? "Jugador",
       }))
@@ -102,26 +109,22 @@ export default function TournamentDetail() {
         .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},created_by.eq.${user.id}`);
       const myPairIds = (myPairs ?? []).map((p) => p.id);
       if (myPairIds.length > 0) {
-        const { data: myReg } = await supabase
+        const { data: myR } = await supabase
           .from("registrations")
-          .select("status")
-          .in("pair_id", myPairIds)
-          .maybeSingle();
-        setMyRegStatus(myReg?.status ?? null);
-      } else {
-        setMyRegStatus(null);
-      }
+          .select("status, tournament_category_id")
+          .in("pair_id", myPairIds);
+        if (myR && myR.length > 0) {
+          setMyReg({ status: myR[0].status, tcat: myR[0].tournament_category_id });
+        } else setMyReg(null);
+      } else setMyReg(null);
     }
-
     setLoading(false);
   }
 
   if (loading) {
     return (
       <AppLayout>
-        <div className="max-w-[1000px] mx-auto p-4 md:p-8 text-sm text-muted-foreground">
-          Cargando torneo…
-        </div>
+        <div className="max-w-[1000px] mx-auto p-4 md:p-8 text-sm text-muted-foreground">Cargando torneo…</div>
       </AppLayout>
     );
   }
@@ -139,18 +142,21 @@ export default function TournamentDetail() {
     );
   }
 
-  const cuposRestantes = tournament.max_pairs - pairs.length;
-  const canRegister =
-    tournament.registration_open &&
-    tournament.status === "open" &&
-    cuposRestantes > 0 &&
-    !myRegStatus;
+  const selectedCat = selectedCatId ? cats.find((c) => c.id === selectedCatId) ?? null : null;
+  const pairsInSelected = selectedCat ? pairs.filter((p) => p.tournament_category_id === selectedCat.id) : [];
+  const cuposRest = selectedCat ? selectedCat.max_pairs - pairsInSelected.length : 0;
+  const myInThis = !!(myReg && selectedCat && myReg.tcat === selectedCat.id);
+  const canRegister = !!(
+    selectedCat &&
+    selectedCat.registration_open &&
+    selectedCat.status === "open" &&
+    cuposRest > 0 &&
+    !myInThis &&
+    (!myReg || myReg.tcat !== selectedCat.id)
+  );
 
   function handleRegisterClick() {
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+    if (!user) { navigate("/auth"); return; }
     setShowRegister(true);
   }
 
@@ -158,19 +164,8 @@ export default function TournamentDetail() {
     <AppLayout>
       <Seo
         title={`${tournament.name} — Off-Side`}
-        description={(tournament.description?.slice(0, 155)) || `Torneo de pádel ${tournament.name} en ${tournament.location}. Inscripciones y fixture en Off-Side.`}
+        description={(tournament.description?.slice(0, 155)) || `Torneo de pádel ${tournament.name} en ${tournament.location}.`}
         path={`/tournaments/${tournament.id}`}
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "Event",
-          name: tournament.name,
-          startDate: tournament.start_date,
-          eventStatus: "https://schema.org/EventScheduled",
-          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-          location: { "@type": "Place", name: tournament.location },
-          description: tournament.description || undefined,
-          organizer: { "@type": "Organization", name: "Off-Side", url: "https://offsidepdel.lovable.app" },
-        }}
       />
       <div className="max-w-[1000px] mx-auto p-4 md:p-8">
         <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
@@ -196,10 +191,10 @@ export default function TournamentDetail() {
                   <Badge variant="outline" className={statusColors[tournament.status as TournamentStatus]}>
                     {statusLabels[tournament.status as TournamentStatus]}
                   </Badge>
-                  {tournament.category && (
-                    <Badge variant="secondary">{tournament.category.name}</Badge>
-                  )}
                   <Badge variant="outline">{tournamentTypeLabels[tournament.tournament_type as keyof typeof tournamentTypeLabels]}</Badge>
+                  {cats.map((c) => (
+                    <Badge key={c.id} variant="secondary">{tournamentCategoryLabel(c)}</Badge>
+                  ))}
                 </div>
               </div>
               <div className="text-right">
@@ -208,103 +203,146 @@ export default function TournamentDetail() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
               <Stat icon={Calendar} label="Fecha" value={formatDate(tournament.start_date)} />
               <Stat icon={Clock} label="Horario" value={tournament.start_time ? `${tournament.start_time.slice(0, 5)} hs` : "—"} />
               <Stat icon={MapPin} label="Lugar" value={tournament.location} />
-              <Stat icon={Users} label="Cupos" value={`${pairs.length} / ${tournament.max_pairs}`} />
-            </div>
-
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              {myRegStatus ? (
-                <div className="flex-1 text-sm text-muted-foreground">
-                  Ya tenés una inscripción en este torneo. Estado: <strong className="text-foreground">{myRegStatus}</strong>.
-                  Podés ver el detalle en{" "}
-                  <Link to="/me" className="text-primary underline">Mi perfil</Link>.
-                </div>
-              ) : canRegister ? (
-                <Button onClick={handleRegisterClick} size="lg">
-                  Inscribirme
-                </Button>
-              ) : (
-                <Button disabled size="lg" variant="outline">
-                  {!tournament.registration_open
-                    ? "Inscripciones cerradas"
-                    : cuposRestantes <= 0
-                      ? "Cupos completos"
-                      : "No disponible"}
-                </Button>
-              )}
-              <span className="text-xs text-muted-foreground">
-                {cuposRestantes > 0 ? `${cuposRestantes} cupos restantes` : "Sin cupos disponibles"}
-              </span>
             </div>
           </div>
         </Card>
 
-        <Tabs defaultValue="info">
-          <TabsList>
-            <TabsTrigger value="info">Información</TabsTrigger>
-            <TabsTrigger value="pairs">Inscriptos ({pairs.length})</TabsTrigger>
-            <TabsTrigger value="fixture">Fixture</TabsTrigger>
-            <TabsTrigger value="standings">Posiciones</TabsTrigger>
-          </TabsList>
+        {/* Categorías */}
+        {!selectedCat ? (
+          <Card className="p-4 md:p-6">
+            <h2 className="font-semibold mb-3 text-sm uppercase tracking-wide text-muted-foreground">Categorías del torneo</h2>
+            {cats.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Este torneo aún no tiene categorías configuradas.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {cats.map((c) => {
+                  const insc = pairs.filter((p) => p.tournament_category_id === c.id).length;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedCatId(c.id)}
+                      className="text-left rounded-lg border border-border bg-card hover:bg-muted/50 transition p-4 min-h-[44px] flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">{tournamentCategoryLabel(c)}</div>
+                        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                          <Users className="h-3 w-3" />
+                          {insc} / {c.max_pairs}
+                          <span className="mx-1">·</span>
+                          {tournamentCategoryStatusLabels[c.status]}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-          <TabsContent value="info" className="mt-4 space-y-4">
-            {tournament.description && (
-              <Card className="p-6">
-                <h2 className="font-semibold mb-2">Descripción</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.description}</p>
-              </Card>
+            {(tournament.description || tournament.rules || tournament.prizes) && (
+              <div className="mt-6 space-y-4">
+                {tournament.description && (
+                  <div>
+                    <h3 className="font-semibold mb-1 text-sm">Descripción</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.description}</p>
+                  </div>
+                )}
+                {tournament.rules && (
+                  <div>
+                    <h3 className="font-semibold mb-1 text-sm">Reglamento</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.rules}</p>
+                  </div>
+                )}
+                {tournament.prizes && (
+                  <div>
+                    <h3 className="font-semibold mb-1 text-sm">Premios</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.prizes}</p>
+                  </div>
+                )}
+              </div>
             )}
-            {tournament.rules && (
-              <Card className="p-6">
-                <h2 className="font-semibold mb-2">Reglamento</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.rules}</p>
-              </Card>
-            )}
-            {tournament.prizes && (
-              <Card className="p-6">
-                <h2 className="font-semibold mb-2">Premios</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.prizes}</p>
-              </Card>
-            )}
-            {!tournament.description && !tournament.rules && !tournament.prizes && (
-              <Card className="p-6 text-sm text-muted-foreground">Sin información adicional.</Card>
-            )}
-          </TabsContent>
+          </Card>
+        ) : (
+          <>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedCatId(null)} className="-ml-2">
+                <ArrowLeft className="h-4 w-4 mr-1" />Categorías
+              </Button>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{tournamentCategoryLabel(selectedCat)}</Badge>
+                <Badge variant="outline">{tournamentCategoryStatusLabels[selectedCat.status]}</Badge>
+              </div>
+            </div>
 
-          <TabsContent value="pairs" className="mt-4">
-            <Card className="p-6">
-              <h2 className="font-semibold mb-3">Parejas confirmadas</h2>
-              {pairs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aún no hay parejas confirmadas.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {pairs.map((p, i) => (
-                    <li key={p.pair_id} className="text-sm flex items-start gap-2 py-1.5 border-b border-border last:border-0">
-                      <span className="text-xs text-muted-foreground font-mono w-5 pt-0.5">{i + 1}.</span>
-                      <span>{p.player1_name} <span className="text-muted-foreground">/</span> {p.player2_name}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <Card className="p-4 md:p-6 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">{pairsInSelected.length}</strong> / {selectedCat.max_pairs} parejas inscriptas
+                  {selectedCat.mode === "suma" && (
+                    <span className="block text-xs mt-1">Suma de niveles requerida: <strong>{selectedCat.suma_value}</strong></span>
+                  )}
+                </div>
+                {myInThis ? (
+                  <div className="text-sm text-muted-foreground">
+                    Ya inscripto en esta categoría. Estado: <strong className="text-foreground">{myReg?.status}</strong>
+                  </div>
+                ) : canRegister ? (
+                  <Button onClick={handleRegisterClick}>Inscribirme</Button>
+                ) : (
+                  <Button disabled variant="outline">
+                    {!selectedCat.registration_open ? "Inscripciones cerradas"
+                      : cuposRest <= 0 ? "Cupos completos"
+                      : myReg ? "Ya inscripto en otra categoría"
+                      : "No disponible"}
+                  </Button>
+                )}
+              </div>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="fixture" className="mt-4">
-            <FixtureView tournamentId={tournament.id} />
-          </TabsContent>
+            <Tabs defaultValue="pairs">
+              <TabsList>
+                <TabsTrigger value="pairs">Inscriptos ({pairsInSelected.length})</TabsTrigger>
+                <TabsTrigger value="fixture">Fixture</TabsTrigger>
+                <TabsTrigger value="standings">Posiciones</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="standings" className="mt-4">
-            <StandingsView tournamentId={tournament.id} />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="pairs" className="mt-4">
+                <Card className="p-6">
+                  {pairsInSelected.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aún no hay parejas confirmadas.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {pairsInSelected.map((p, i) => (
+                        <li key={p.pair_id} className="text-sm flex items-start gap-2 py-1.5 border-b border-border last:border-0">
+                          <span className="text-xs text-muted-foreground font-mono w-5 pt-0.5">{i + 1}.</span>
+                          <span>{p.player1_name} <span className="text-muted-foreground">/</span> {p.player2_name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="fixture" className="mt-4">
+                <FixtureView tournamentId={tournament.id} tournamentCategoryId={selectedCat.id} />
+              </TabsContent>
+
+              <TabsContent value="standings" className="mt-4">
+                <StandingsView tournamentId={tournament.id} tournamentCategoryId={selectedCat.id} />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
 
-      {showRegister && tournament && (
+      {showRegister && tournament && selectedCat && (
         <RegisterDialog
           tournament={tournament}
+          tournamentCategory={selectedCat}
           open={showRegister}
           onOpenChange={setShowRegister}
           onSuccess={() => {
