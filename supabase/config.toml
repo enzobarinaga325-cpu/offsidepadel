@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.admin-reset-pin]
 verify_jwt = true
+
+[functions.public-categories]
+verify_jwt = false
