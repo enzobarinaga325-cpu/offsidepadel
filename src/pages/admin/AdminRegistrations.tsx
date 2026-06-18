@@ -69,14 +69,27 @@ export default function AdminRegistrations() {
 
   async function load(tid: string) {
     setLoading(true);
-    const [{ data: t }, { data: tc }, { data: regs }] = await Promise.all([
-      supabase.from("tournaments").select("*").eq("id", tid).maybeSingle(),
-      supabase.from("tournament_categories").select("*, category:categories(*)").eq("tournament_id", tid).order("position"),
-      supabase.from("registrations")
-        .select("id, status, registered_at, pair_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
-        .eq("tournament_id", tid)
-        .order("registered_at", { ascending: true }),
+    const isAll = tid === ALL;
+    const [tRes, tcRes, regsRes] = await Promise.all([
+      isAll
+        ? Promise.resolve({ data: null })
+        : supabase.from("tournaments").select("*").eq("id", tid).maybeSingle(),
+      isAll
+        ? supabase.from("tournament_categories").select("*, category:categories(*)").order("position")
+        : supabase.from("tournament_categories").select("*, category:categories(*)").eq("tournament_id", tid).order("position"),
+      (isAll
+        ? supabase.from("registrations")
+            .select("id, status, registered_at, pair_id, tournament_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
+            .order("registered_at", { ascending: false })
+        : supabase.from("registrations")
+            .select("id, status, registered_at, pair_id, tournament_id, tournament_category_id, approval_reason, admin_comment, availability, partner_confirmed, pairs!inner(player1_id, player2_id)")
+            .eq("tournament_id", tid)
+            .order("registered_at", { ascending: false })
+      ),
     ]);
+    const t = (tRes as any).data;
+    const tc = (tcRes as any).data;
+    const regs = (regsRes as any).data;
     setTournament(t);
     setCats((tc ?? []) as TCat[]);
 
@@ -91,9 +104,14 @@ export default function AdminRegistrations() {
     (profs ?? []).forEach((p: any) => map.set(p.user_id, {
       full_name: p.full_name, cat: p.category?.name ?? null,
     }));
+    const tMap = new Map<string, string>();
+    tournaments.forEach((tt) => tMap.set(tt.id, tt.name));
+    if (t) tMap.set(t.id, t.name);
 
     setRows((regs ?? []).map((r: any) => ({
       id: r.id, status: r.status, registered_at: r.registered_at, pair_id: r.pair_id,
+      tournament_id: r.tournament_id,
+      tournament_name: tMap.get(r.tournament_id) ?? null,
       tournament_category_id: r.tournament_category_id,
       approval_reason: r.approval_reason, admin_comment: r.admin_comment,
       availability: r.availability ?? null,
