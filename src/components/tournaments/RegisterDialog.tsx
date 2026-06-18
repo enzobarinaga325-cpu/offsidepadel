@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -48,10 +49,11 @@ export function RegisterDialog({
   const [options, setOptions] = useState<PartnerOption[]>([]);
   const [selected, setSelected] = useState<PartnerOption | null>(null);
   const [myCategory, setMyCategory] = useState<CategoryRow | null>(null);
+  const [availability, setAvailability] = useState("");
 
   useEffect(() => {
     if (!open || !user) return;
-    setSearch(""); setSelected(null);
+    setSearch(""); setSelected(null); setAvailability("");
     void doSearch("");
     void loadMyCategory();
   }, [open, user]);
@@ -134,6 +136,7 @@ export function RegisterDialog({
       const { error } = await (supabase.rpc as any)("request_pair_registration", {
         _tournament_category_id: tournamentCategory.id,
         _partner_user_id: selected.user_id,
+        _availability: availability.trim() || null,
       });
       if (error) throw error;
       onOpenChange(false);
@@ -215,11 +218,29 @@ export function RegisterDialog({
             </div>
           )}
 
+          <div className="space-y-2">
+            <Label htmlFor="availability">Disponibilidad (opcional)</Label>
+            <Textarea
+              id="availability"
+              placeholder="Ej: Sábados por la tarde, solo después de las 19 hs, cualquier horario…"
+              value={availability}
+              onChange={(e) => setAvailability(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Indicale al administrador qué días y horarios podés jugar.
+            </p>
+          </div>
+
           <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Valor de inscripción</span>
               <strong>{formatCurrency(tournament.registration_fee)}</strong>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Tu solicitud quedará <strong>pendiente</strong> hasta que el administrador la apruebe.
+            </p>
           </div>
 
           <DialogFooter>
@@ -228,7 +249,7 @@ export function RegisterDialog({
             </Button>
             <Button type="submit" disabled={submitting || !selected || (pf && !pf.ok)}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {pf?.warning ? "Solicitar (pendiente)" : "Confirmar inscripción"}
+              Enviar solicitud
             </Button>
           </DialogFooter>
         </form>
