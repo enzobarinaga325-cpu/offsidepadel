@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, MapPin, Users, Trophy, ArrowLeft, DollarSign, Clock } from "lucide-react";
+import { Seo } from "@/components/Seo";
 import { FixtureView } from "@/components/tournaments/FixtureView";
 import { StandingsView } from "@/components/tournaments/StandingsView";
 import {
@@ -155,6 +156,22 @@ export default function TournamentDetail() {
 
   return (
     <AppLayout>
+      <Seo
+        title={`${tournament.name} — Off-Side`}
+        description={(tournament.description?.slice(0, 155)) || `Torneo de pádel ${tournament.name} en ${tournament.location}. Inscripciones y fixture en Off-Side.`}
+        path={`/tournaments/${tournament.id}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Event",
+          name: tournament.name,
+          startDate: tournament.start_date,
+          eventStatus: "https://schema.org/EventScheduled",
+          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+          location: { "@type": "Place", name: tournament.location },
+          description: tournament.description || undefined,
+          organizer: { "@type": "Organization", name: "Off-Side", url: "https://offsidepdel.lovable.app" },
+        }}
+      />
       <div className="max-w-[1000px] mx-auto p-4 md:p-8">
         <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
           <Link to="/tournaments"><ArrowLeft className="h-4 w-4 mr-1" />Torneos</Link>
