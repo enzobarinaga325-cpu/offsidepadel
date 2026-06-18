@@ -125,6 +125,37 @@ export default function AdminPlayers() {
     void setCategory(userId, next.id);
   }
 
+  const [resetForId, setResetForId] = useState<string | null>(null);
+  const [tempPin, setTempPin] = useState<string | null>(null);
+
+  async function resetPin(userId: string) {
+    setSavingId(userId);
+    const { data, error } = await supabase.functions.invoke("admin-reset-pin", {
+      body: { userId },
+    });
+    setSavingId(null);
+    if (error || data?.error) {
+      toast({ title: "Error", description: error?.message || data?.error, variant: "destructive" });
+      return;
+    }
+    setTempPin(data.pin);
+    setResetForId(userId);
+  }
+
+  async function toggleActive(userId: string, current: boolean | null) {
+    setSavingId(userId);
+    const { error } = await supabase.rpc("admin_set_user_active", {
+      _user_id: userId,
+      _active: !(current ?? true),
+    });
+    setSavingId(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: current === false ? "Usuario reactivado" : "Usuario desactivado" });
+  }
+
   return (
     <AppLayout>
       <div className="max-w-[1000px] mx-auto p-4 md:p-8">
