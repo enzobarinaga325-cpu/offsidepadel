@@ -24,7 +24,7 @@ type Match = {
 
 type PairLabel = { id: string; label: string };
 
-export function FixtureView({ tournamentId }: { tournamentId: string }) {
+export function FixtureView({ tournamentId, tournamentCategoryId }: { tournamentId: string; tournamentCategoryId?: string }) {
   const { isAdmin } = useIsAdmin();
   const [matches, setMatches] = useState<Match[]>([]);
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
@@ -34,9 +34,14 @@ export function FixtureView({ tournamentId }: { tournamentId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
+    let mq = supabase.from("matches").select("*").eq("tournament_id", tournamentId).order("bracket_position");
+    let gq = supabase.from("tournament_groups").select("id, name").eq("tournament_id", tournamentId).order("position");
+    if (tournamentCategoryId) {
+      mq = mq.eq("tournament_category_id", tournamentCategoryId);
+      gq = gq.eq("tournament_category_id", tournamentCategoryId);
+    }
     const [{ data: m }, { data: g }, { data: p }] = await Promise.all([
-      supabase.from("matches").select("*").eq("tournament_id", tournamentId).order("bracket_position"),
-      supabase.from("tournament_groups").select("id, name").eq("tournament_id", tournamentId).order("position"),
+      mq, gq,
       supabase.from("pairs").select("id, player1_id, player2_id").eq("tournament_id", tournamentId),
     ]);
     setMatches((m ?? []) as Match[]);
@@ -58,17 +63,17 @@ export function FixtureView({ tournamentId }: { tournamentId: string }) {
     });
     setPairs(pairMap);
     setLoading(false);
-  }, [tournamentId]);
+  }, [tournamentId, tournamentCategoryId]);
 
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
     const ch = supabase
-      .channel(`matches:${tournamentId}`)
+      .channel(`matches:${tournamentId}:${tournamentCategoryId ?? "all"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "matches", filter: `tournament_id=eq.${tournamentId}` }, () => void load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [tournamentId, load]);
+  }, [tournamentId, tournamentCategoryId, load]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Cargando fixture…</p>;
   if (matches.length === 0) {
