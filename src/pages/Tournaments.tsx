@@ -47,13 +47,10 @@ export default function Tournaments() {
       supabase.from("categories").select("*").order("name"),
     ]);
 
-    // counts of approved registrations per tournament
-    const { data: regs } = await supabase
-      .from("registrations")
-      .select("tournament_id")
-      .eq("status", "approved");
+    // counts of approved registrations per tournament (safe RPC, no admin columns)
+    const { data: regs } = await (supabase.rpc as any)("get_approved_registration_counts");
     const counts = new Map<string, number>();
-    (regs ?? []).forEach((r) => counts.set(r.tournament_id, (counts.get(r.tournament_id) ?? 0) + 1));
+    ((regs ?? []) as any[]).forEach((r) => counts.set(r.tournament_id, Number(r.approved_count) || 0));
 
     setTournaments(
       (tData ?? []).map((t: any) => ({ ...t, approved_count: counts.get(t.id) ?? 0 }))

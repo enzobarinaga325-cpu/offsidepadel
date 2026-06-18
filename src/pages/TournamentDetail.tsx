@@ -73,16 +73,15 @@ export default function TournamentDetail() {
     const catsData = (tc ?? []) as TCat[];
     setCats(catsData);
 
-    const { data: regs } = await supabase
-      .from("registrations")
-      .select("pair_id, tournament_category_id, pairs!inner(id, player1_id, player2_id)")
-      .eq("tournament_id", id!)
-      .eq("status", "approved");
+    const { data: regs } = await (supabase.rpc as any)(
+      "get_tournament_approved_pairs",
+      { _tournament_id: id! },
+    );
 
     const userIds = new Set<string>();
-    (regs ?? []).forEach((r: any) => {
-      if (r.pairs?.player1_id) userIds.add(r.pairs.player1_id);
-      if (r.pairs?.player2_id) userIds.add(r.pairs.player2_id);
+    ((regs ?? []) as any[]).forEach((r) => {
+      if (r.player1_id) userIds.add(r.player1_id);
+      if (r.player2_id) userIds.add(r.player2_id);
     });
     const nameMap = new Map<string, string>();
     if (userIds.size > 0) {
@@ -93,11 +92,11 @@ export default function TournamentDetail() {
       (profs ?? []).forEach((p) => nameMap.set(p.user_id, p.full_name ?? "Jugador"));
     }
     setPairs(
-      (regs ?? []).map((r: any) => ({
+      ((regs ?? []) as any[]).map((r) => ({
         pair_id: r.pair_id,
         tournament_category_id: r.tournament_category_id,
-        player1_name: nameMap.get(r.pairs.player1_id) ?? "Jugador",
-        player2_name: nameMap.get(r.pairs.player2_id) ?? "Jugador",
+        player1_name: nameMap.get(r.player1_id) ?? "Jugador",
+        player2_name: nameMap.get(r.player2_id) ?? "Jugador",
       }))
     );
 
