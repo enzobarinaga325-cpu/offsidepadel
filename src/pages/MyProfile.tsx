@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trophy, Trash2 } from "lucide-react";
+import { Seo } from "@/components/Seo";
 import {
   registrationStatusLabels,
   registrationStatusColors,
@@ -165,6 +166,11 @@ export default function MyProfile() {
 
   return (
     <AppLayout>
+      <Seo
+        title="Mi perfil — Off-Side"
+        description="Gestioná tus datos, tu categoría y tus inscripciones a torneos de pádel."
+        path="/me"
+      />
       <div className="max-w-[1000px] mx-auto p-4 md:p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Mi perfil</h1>
@@ -200,7 +206,7 @@ export default function MyProfile() {
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label>Lado preferido</Label>
                     <Select value={side} onValueChange={setSide}>
-                      <SelectTrigger className="h-11"><SelectValue placeholder="Elegí un lado" /></SelectTrigger>
+                      <SelectTrigger className="h-11" aria-label="Lado preferido"><SelectValue placeholder="Elegí un lado" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="drive">Drive</SelectItem>
                         <SelectItem value="reves">Revés</SelectItem>

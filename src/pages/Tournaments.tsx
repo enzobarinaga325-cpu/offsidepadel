@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, MapPin, Users, Search, Trophy } from "lucide-react";
+import { Seo } from "@/components/Seo";
 import {
   statusLabels,
   statusColors,
@@ -70,6 +71,11 @@ export default function Tournaments() {
 
   return (
     <AppLayout>
+      <Seo
+        title="Torneos de Pádel — Off-Side"
+        description="Explorá los torneos de pádel disponibles, filtrá por categoría y estado, e inscribite con tu compañero en segundos."
+        path="/tournaments"
+      />
       <div className="max-w-[1200px] mx-auto p-4 md:p-8">
         <div className="flex flex-col gap-1 mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Torneos</h1>
@@ -84,13 +90,14 @@ export default function Tournaments() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar torneo..."
+              aria-label="Buscar torneo"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-9"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-[200px] h-9">
+            <SelectTrigger className="w-full md:w-[200px] h-9" aria-label="Filtrar por estado">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -101,7 +108,7 @@ export default function Tournaments() {
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full md:w-[200px] h-9">
+            <SelectTrigger className="w-full md:w-[200px] h-9" aria-label="Filtrar por categoría">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
