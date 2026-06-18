@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, AlertTriangle } from "lucide-react";
 import {
   formatCurrency,
   categoryLevelToInt,
@@ -25,12 +23,10 @@ type TournamentCategoryWithBase = TournamentCategoryRow & { category: CategoryRo
 type PartnerOption = {
   user_id: string;
   full_name: string;
-  category: CategoryRow | null;
+  category_name: string | null;
+  category_level: string | null;
+  category_gender: string | null;
 };
-
-const schema = z.object({
-  partner_id: z.string().uuid({ message: "Elegí un compañero" }),
-});
 
 export function RegisterDialog({
   tournament,
@@ -50,12 +46,13 @@ export function RegisterDialog({
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<PartnerOption[]>([]);
-  const [partnerId, setPartnerId] = useState<string>("");
+  const [selected, setSelected] = useState<PartnerOption | null>(null);
   const [myCategory, setMyCategory] = useState<CategoryRow | null>(null);
 
   useEffect(() => {
     if (!open || !user) return;
-    void searchPlayers("");
+    setSearch(""); setSelected(null);
+    void doSearch("");
     void loadMyCategory();
   }, [open, user]);
 
@@ -69,101 +66,76 @@ export function RegisterDialog({
     setMyCategory((data?.category as CategoryRow | null) ?? null);
   }
 
-  async function searchPlayers(q: string) {
-    let query = supabase
-      .from("profiles")
-      .select("user_id, full_name, category:categories(*)")
-      .neq("user_id", user!.id)
-      .order("full_name")
-      .limit(30);
-    if (q) query = query.ilike("full_name", `%${q}%`);
-    const { data } = await query;
+  async function doSearch(q: string) {
+    const { data, error } = await (supabase.rpc as any)("search_players", { _q: q });
+    if (error) {
+      setOptions([]); return;
+    }
     setOptions(
-      (data ?? [])
-        .filter((p) => p.full_name && p.full_name.trim().length > 0)
-        .map((p: any) => ({
+      ((data ?? []) as any[])
+        .filter((p) => p.user_id !== user?.id && p.full_name?.trim())
+        .map((p) => ({
           user_id: p.user_id,
-          full_name: p.full_name as string,
-          category: (p.category as CategoryRow | null) ?? null,
+          full_name: p.full_name,
+          category_name: p.category_name,
+          category_level: p.category_level,
+          category_gender: p.category_gender,
         }))
     );
   }
 
-  function clientValidate(partner: PartnerOption): string | null {
-    if (!myCategory || !partner.category) {
-      return "Ambos jugadores deben tener una categoría asignada en su perfil";
-    }
+  // returns { ok, warning } — warning = string si la inscripción quedará pendiente
+  function preflight(partner: PartnerOption): { ok: boolean; error?: string; warning?: string } {
+    if (!myCategory) return { ok: false, error: "No tenés categoría asignada en tu perfil." };
+    if (!partner.category_level) return { ok: false, error: "Tu compañero no tiene categoría asignada." };
     const tc = tournamentCategory;
-    // Gender check
     if (tc.gender === "mens") {
-      if (myCategory.gender !== "male" || partner.category.gender !== "male")
-        return "Esta categoría es de Caballeros: ambos jugadores deben ser hombres";
+      if (myCategory.gender !== "male" || partner.category_gender !== "male")
+        return { ok: false, error: "Categoría de Caballeros: ambos deben ser hombres." };
     } else if (tc.gender === "womens") {
-      if (myCategory.gender !== "female" || partner.category.gender !== "female")
-        return "Esta categoría es de Damas: ambas jugadoras deben ser mujeres";
+      if (myCategory.gender !== "female" || partner.category_gender !== "female")
+        return { ok: false, error: "Categoría de Damas: ambas deben ser mujeres." };
     } else if (tc.gender === "mixed") {
-      const a = myCategory.gender, b = partner.category.gender;
-      const isMixed = (a === "male" && b === "female") || (a === "female" && b === "male");
-      if (!isMixed) return "Esta categoría es Mixta: la pareja debe ser un hombre y una mujer";
-    }
-    if (tc.mode === "normal" && tc.category_id) {
-      if (myCategory.id !== tc.category_id || partner.category.id !== tc.category_id) {
-        return "Ambos jugadores deben pertenecer a la categoría del torneo";
-      }
+      const isMixed = (myCategory.gender === "male" && partner.category_gender === "female")
+                   || (myCategory.gender === "female" && partner.category_gender === "male");
+      if (!isMixed) return { ok: false, error: "Categoría Mixta: un hombre y una mujer." };
     }
     if (tc.mode === "suma") {
       const l1 = categoryLevelToInt(myCategory.level);
-      const l2 = categoryLevelToInt(partner.category.level);
-      if (l1 == null || l2 == null) return "No se pudo determinar el nivel de uno de los jugadores";
+      const l2 = categoryLevelToInt(partner.category_level);
+      if (l1 == null || l2 == null) return { ok: false, error: "No se pudo determinar el nivel." };
       if (l1 + l2 !== tc.suma_value) {
-        return `La suma de categorías (${l1} + ${l2} = ${l1 + l2}) no coincide con Suma ${tc.suma_value} de esta categoría`;
+        return { ok: false, error: `La suma de niveles (${l1}+${l2}=${l1+l2}) no coincide con Suma ${tc.suma_value}.` };
+      }
+    } else if (tc.mode === "normal" && tc.category_id && tc.category) {
+      if (myCategory.id !== tc.category_id || (partner.category_level && partner.category_level !== tc.category.level)) {
+        return {
+          ok: true,
+          warning: `Hay diferencia de categoría. Tu categoría: ${myCategory.name} (${myCategory.level}). Compañero: ${partner.category_name ?? "?"} (${partner.category_level ?? "?"}). Categoría del torneo: ${tc.category.name}. La inscripción quedará pendiente de aprobación del administrador.`,
+        };
       }
     }
-    return null;
+    return { ok: true };
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
-    const parsed = schema.safeParse({ partner_id: partnerId });
-    if (!parsed.success) {
-      toast({ title: "Falta el compañero", description: parsed.error.errors[0].message, variant: "destructive" });
+    if (!user || !selected) {
+      toast({ title: "Elegí un compañero", variant: "destructive" });
       return;
     }
-    const partner = options.find((o) => o.user_id === partnerId);
-    if (!partner) return;
-    const err = clientValidate(partner);
-    if (err) {
-      toast({ title: "No se puede inscribir", description: err, variant: "destructive" });
+    const pf = preflight(selected);
+    if (!pf.ok) {
+      toast({ title: "No se puede inscribir", description: pf.error, variant: "destructive" });
       return;
     }
     setSubmitting(true);
     try {
-      const { data: pair, error: pairErr } = await supabase
-        .from("pairs")
-        .insert({
-          tournament_id: tournament.id,
-          player1_id: user.id,
-          player2_id: partnerId,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-      if (pairErr) throw pairErr;
-
-      const { error: regErr } = await supabase.from("registrations").insert({
-        tournament_id: tournament.id,
-        tournament_category_id: tournamentCategory.id,
-        pair_id: pair.id,
-        status: "pending",
-        registered_by: user.id,
+      const { error } = await (supabase.rpc as any)("request_pair_registration", {
+        _tournament_category_id: tournamentCategory.id,
+        _partner_user_id: selected.user_id,
       });
-      if (regErr) {
-        // Cleanup orphan pair
-        await supabase.from("pairs").delete().eq("id", pair.id);
-        throw regErr;
-      }
-
+      if (error) throw error;
       onOpenChange(false);
       onSuccess();
     } catch (err: any) {
@@ -174,6 +146,7 @@ export function RegisterDialog({
   }
 
   const catLabel = tournamentCategoryLabel(tournamentCategory);
+  const pf = selected ? preflight(selected) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -183,73 +156,79 @@ export function RegisterDialog({
           <DialogDescription>
             Categoría: <strong>{catLabel}</strong>
             {tournamentCategory.mode === "suma" && (
-              <> — La suma de niveles de ambos jugadores debe ser exactamente <strong>{tournamentCategory.suma_value}</strong>.</>
+              <> — La suma de niveles debe ser exactamente <strong>{tournamentCategory.suma_value}</strong>.</>
             )}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-            Tu categoría: <strong>{myCategory ? `${myCategory.name}` : "sin categoría"}</strong>{" "}
-            · Tipo torneo: <strong>{tournamentGenderLabels[tournamentCategory.gender]}</strong>
+            Tu categoría: <strong>{myCategory ? myCategory.name : "sin categoría"}</strong>
+            {" · "}Tipo: <strong>{tournamentGenderLabels[tournamentCategory.gender]}</strong>
           </div>
 
           <div className="space-y-2">
-            <Label>Buscar jugador</Label>
+            <Label>Buscar compañero (nombre, apellido o teléfono)</Label>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Nombre del compañero…"
+                placeholder="Ej: Juan Pérez o 11..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  void searchPlayers(e.target.value);
-                }}
+                onChange={(e) => { setSearch(e.target.value); void doSearch(e.target.value); }}
                 className="pl-8 h-9"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Compañero</Label>
-            <Select value={partnerId} onValueChange={setPartnerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccioná un jugador" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[280px]">
-                {options.length === 0 ? (
-                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                    No se encontraron jugadores
-                  </div>
-                ) : (
-                  options.map((o) => (
-                    <SelectItem key={o.user_id} value={o.user_id}>
-                      {o.full_name}{o.category ? ` — ${o.category.name}` : " — sin categoría"}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              El compañero debe tener cuenta y categoría en la plataforma.
-            </p>
+          <div className="max-h-[220px] overflow-y-auto rounded-md border border-border">
+            {options.length === 0 ? (
+              <div className="px-3 py-6 text-sm text-muted-foreground text-center">No se encontraron jugadores.</div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {options.map((o) => (
+                  <li key={o.user_id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(o)}
+                      className={`w-full text-left px-3 py-2 min-h-[44px] flex justify-between items-center gap-2 hover:bg-muted/50 transition ${selected?.user_id === o.user_id ? "bg-primary/10" : ""}`}
+                    >
+                      <span className="text-sm font-medium truncate">{o.full_name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {o.category_name ?? "sin categoría"}{o.category_level ? ` · ${o.category_level}` : ""}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
+          {selected && pf?.warning && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs flex gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <span>{pf.warning}</span>
+            </div>
+          )}
+          {selected && pf && !pf.ok && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs">
+              {pf.error}
+            </div>
+          )}
+
           <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
-            <div className="flex justify-between mb-1">
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Valor de inscripción</span>
               <strong>{formatCurrency(tournament.registration_fee)}</strong>
             </div>
-            <p className="text-xs text-muted-foreground">El cobro se coordina con la organización.</p>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={submitting || !partnerId}>
+            <Button type="submit" disabled={submitting || !selected || (pf && !pf.ok)}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Confirmar inscripción
+              {pf?.warning ? "Solicitar (pendiente)" : "Confirmar inscripción"}
             </Button>
           </DialogFooter>
         </form>
