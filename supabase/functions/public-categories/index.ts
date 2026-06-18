@@ -13,11 +13,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    // The categories table has no `is_active` column — all rows are considered active.
     const { data, error } = await admin
       .from("categories")
       .select("id,name,level")
-      .eq("is_active", true)
-      .order("name");
+      .order("level", { ascending: true });
     if (error) throw error;
     return new Response(JSON.stringify({ categories: data ?? [] }), {
       status: 200,
