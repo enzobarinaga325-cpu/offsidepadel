@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://offsidepdel.lovable.app/sitemap.xml
+Sitemap: https://offsidepadel.lovable.app/sitemap.xml
