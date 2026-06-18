@@ -38,7 +38,7 @@ export default function AdminPlayers() {
     setLoading(true);
     const [{ data: cats }, { data: profs }] = await Promise.all([
       supabase.from("categories").select("id, name, level").order("name"),
-      supabase.from("profiles").select("user_id, full_name, first_name, last_name, phone, avatar_url, category_id").order("full_name"),
+      supabase.from("profiles").select("user_id, full_name, first_name, last_name, phone, avatar_url, category_id, is_active").order("full_name"),
     ]);
     setCategories(cats ?? []);
     setPlayers((profs ?? []) as Player[]);
