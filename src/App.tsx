@@ -24,6 +24,7 @@ import AdminRegistrations from "./pages/admin/AdminRegistrations";
 import AdminStats from "./pages/admin/AdminStats";
 import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
+import CategoriasGuide from "./pages/CategoriasGuide";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/tournaments" element={<Tournaments />} />
               <Route path="/tournaments/:id" element={<TournamentDetail />} />
               <Route path="/ranking" element={<Ranking />} />
+              <Route path="/guias/categorias" element={<CategoriasGuide />} />
               <Route path="/me" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />
