@@ -38,11 +38,11 @@ export default function Auth() {
   const [adminPassword, setAdminPassword] = useState("");
 
   useEffect(() => {
-    // Categories are readable by anon? Our RLS now requires authenticated.
-    // Use the public edge-free path: call a permissive select via anon key.
-    // If empty due to RLS, we'll still allow submission but the user picks blindly.
-    supabase.from("categories").select("id,name").order("name").then(({ data }) => {
-      if (data) setCategories(data as Category[]);
+    // Categories list for the public registration form is served by a
+    // dedicated public edge function so the table itself stays auth-only.
+    supabase.functions.invoke("public-categories").then(({ data }) => {
+      const list = (data as { categories?: Category[] } | null)?.categories;
+      if (list) setCategories(list);
     });
   }, []);
 
