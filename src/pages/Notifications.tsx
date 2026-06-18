@@ -6,12 +6,18 @@ import { Bell, Check, Trash2 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { Seo } from "@/components/Seo";
 
 export default function Notifications() {
   const { items, unread, loading, markRead, markAllRead, remove } = useNotifications();
 
   return (
     <AppLayout>
+      <Seo
+        title="Notificaciones — Off-Side"
+        description="Revisá las novedades de tus inscripciones, partidos y resultados en tus torneos de pádel."
+        path="/notifications"
+      />
       <div className="max-w-[800px] mx-auto p-4 md:p-8">
         <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
           <div>
@@ -56,11 +62,11 @@ export default function Notifications() {
                   </div>
                   <div className="flex items-center gap-1">
                     {!n.read_at && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => markRead(n.id)} title="Marcar como leída">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => markRead(n.id)} title="Marcar como leída" aria-label="Marcar notificación como leída">
                         <Check className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(n.id)} title="Eliminar">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(n.id)} title="Eliminar" aria-label="Eliminar notificación">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

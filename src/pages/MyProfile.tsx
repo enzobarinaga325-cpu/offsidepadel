@@ -276,7 +276,7 @@ function Section({
               </div>
             </div>
             {onCancel && r.status === "pending" && (
-              <Button variant="ghost" size="icon" onClick={() => onCancel(r.id)} title="Cancelar inscripción">
+              <Button variant="ghost" size="icon" onClick={() => onCancel(r.id)} title="Cancelar inscripción" aria-label="Cancelar inscripción">
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             )}
