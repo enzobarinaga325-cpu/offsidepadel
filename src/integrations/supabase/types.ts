@@ -1227,6 +1227,13 @@ export type Database = {
         Args: { _groups_count?: number; _tournament_category_id: string }
         Returns: Json
       }
+      get_approved_registration_counts: {
+        Args: never
+        Returns: {
+          approved_count: number
+          tournament_id: string
+        }[]
+      }
       get_player_stats: { Args: { _player_id: string }; Returns: Json }
       get_ranking: {
         Args: { _category_id?: string; _from?: string; _to?: string }
@@ -1247,6 +1254,17 @@ export type Database = {
           job_title: string
           role: string
           user_id: string
+        }[]
+      }
+      get_tournament_approved_pairs: {
+        Args: { _tournament_id: string }
+        Returns: {
+          pair_id: string
+          player1_id: string
+          player2_id: string
+          registration_id: string
+          tournament_category_id: string
+          tournament_id: string
         }[]
       }
       has_role: {
