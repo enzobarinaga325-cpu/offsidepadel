@@ -1,9 +1,53 @@
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Tables } from "@/integrations/supabase/types";
 
 export type TournamentStatus = Database["public"]["Enums"]["tournament_status"];
 export type TournamentType = Database["public"]["Enums"]["tournament_type"];
 export type RegistrationStatus = Database["public"]["Enums"]["registration_status"];
 export type CategoryGender = Database["public"]["Enums"]["category_gender"];
+export type TournamentGender = Database["public"]["Enums"]["tournament_gender"];
+export type TournamentCategoryMode = Database["public"]["Enums"]["tournament_category_mode"];
+export type TournamentCategoryStatus = Database["public"]["Enums"]["tournament_category_status"];
+export type TournamentCategoryRow = Tables<"tournament_categories">;
+
+export const tournamentGenderLabels: Record<TournamentGender, string> = {
+  mens: "Caballeros",
+  womens: "Damas",
+  mixed: "Mixto",
+};
+
+export const tournamentCategoryStatusLabels: Record<TournamentCategoryStatus, string> = {
+  open: "Abierta",
+  in_progress: "En juego",
+  closed: "Cerrada",
+  finished: "Finalizada",
+};
+
+const LEVEL_TO_INT: Record<string, number> = {
+  "1ra": 1, "2da": 2, "3ra": 3, "4ta": 4,
+  "5ta": 5, "6ta": 6, "7ma": 7, "8va": 8,
+};
+
+export function categoryLevelToInt(level: string | null | undefined): number | null {
+  if (!level) return null;
+  return LEVEL_TO_INT[level.toLowerCase()] ?? null;
+}
+
+const LEVEL_SHORT: Record<string, string> = {
+  "1ra": "1ª", "2da": "2ª", "3ra": "3ª", "4ta": "4ª",
+  "5ta": "5ª", "6ta": "6ª", "7ma": "7ª", "8va": "8ª",
+};
+
+export function tournamentCategoryLabel(
+  tc: Pick<TournamentCategoryRow, "mode" | "suma_value" | "gender" | "label"> & {
+    category?: { name?: string | null; level?: string | null } | null;
+  }
+): string {
+  if (tc.label && tc.label.trim()) return tc.label.trim();
+  const g = tournamentGenderLabels[tc.gender];
+  if (tc.mode === "suma") return `Suma ${tc.suma_value ?? "?"} ${g}`;
+  const lvl = tc.category?.level ? (LEVEL_SHORT[tc.category.level] ?? tc.category.level) : "—";
+  return `${lvl} ${g}`;
+}
 
 export const statusLabels: Record<TournamentStatus, string> = {
   upcoming: "Próximamente",
