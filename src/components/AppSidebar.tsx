@@ -31,9 +31,9 @@ export function SidebarContent({ collapsed = false, onNavigate }: { collapsed?: 
       <Link
         to="/"
         onClick={onNavigate}
-        className="flex items-center justify-center px-3 h-14 border-b border-sidebar-border bg-black hover:opacity-90 transition-opacity"
+        className="flex items-center justify-center px-3 h-20 border-b border-sidebar-border hover:opacity-90 transition-opacity"
       >
-        <OffsideLogo height={collapsed ? 20 : 26} className="!dark:[filter:none] [filter:none]" />
+        <OffsideLogo height={collapsed ? 40 : 64} className="dark:invert-0 invert" />
       </Link>
 
       <nav className="flex-1 py-2 px-2 space-y-0.5">
