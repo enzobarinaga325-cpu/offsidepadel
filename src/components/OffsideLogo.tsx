@@ -1,15 +1,15 @@
-import logo from "@/assets/offside-logo.png.asset.json";
 import { cn } from "@/lib/utils";
 
+const LOGO_URL = "/logo.png";
+
 /**
- * Off-Side official wordmark. The source asset has a black background,
- * so we invert it on dark themes (white logo on dark) and apply a
- * mix-blend-mode trick to drop the black on light themes.
+ * Off-Side official wordmark. Served from /public so it ships with the
+ * Vercel build as a static asset.
  */
 export function OffsideLogo({
   className,
   height = 28,
-  alt = "Off-Side",
+  alt = "Offside",
 }: {
   className?: string;
   height?: number;
@@ -17,15 +17,10 @@ export function OffsideLogo({
 }) {
   return (
     <img
-      src={logo.url}
+      src={LOGO_URL}
       alt={alt}
       style={{ height }}
-      className={cn(
-        "w-auto select-none object-contain",
-        // black bg PNG: in dark mode it blends perfectly; in light mode invert.
-        "dark:[filter:none] [filter:invert(1)]",
-        className
-      )}
+      className={cn("w-auto select-none object-contain", className)}
       draggable={false}
     />
   );
@@ -42,8 +37,8 @@ export function OffsideMark({ size = 28, className }: { size?: number; className
       style={{ width: size, height: size }}
     >
       <img
-        src={logo.url}
-        alt="Off-Side"
+        src={LOGO_URL}
+        alt="Offside"
         className="w-[140%] max-w-none object-contain"
         draggable={false}
       />
