@@ -41,7 +41,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-2 px-3 md:px-6">
+        <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-2 px-3 md:px-6">
           {/* Left: mobile menu + logo */}
           <div className="flex items-center gap-2 min-w-0">
             <Sheet open={open} onOpenChange={setOpen}>
@@ -62,8 +62,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
 
-            <Link to={user ? (isAdmin ? "/admin" : "/tournaments") : "/"} className="flex items-center bg-black rounded-md px-2 py-1">
-              <OffsideLogo height={22} className="[filter:none] dark:[filter:none]" />
+            <Link to={user ? (isAdmin ? "/admin" : "/tournaments") : "/"} className="flex items-center">
+              <OffsideLogo height={64} className="dark:invert-0 invert" />
             </Link>
           </div>
 
@@ -136,9 +136,9 @@ function MobileMenu({
       <Link
         to="/"
         onClick={onNavigate}
-        className="flex h-14 items-center justify-center border-b bg-black"
+        className="flex h-20 items-center justify-center border-b"
       >
-        <OffsideLogo height={24} className="[filter:none] dark:[filter:none]" />
+        <OffsideLogo height={56} className="dark:invert-0 invert" />
       </Link>
       <nav className="flex-1 p-3 space-y-1">
         {items.map((item) => (
