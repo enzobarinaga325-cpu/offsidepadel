@@ -11,6 +11,8 @@ import { Loader2, ArrowLeft, Play, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FixtureView } from "@/components/tournaments/FixtureView";
 import { StandingsView } from "@/components/tournaments/StandingsView";
+import { GroupsManager } from "@/components/admin/GroupsManager";
+
 import {
   tournamentCategoryLabel,
   tournamentCategoryStatusLabels,
