@@ -1171,6 +1171,55 @@ export type Database = {
           },
         ]
       }
+      public_registrations: {
+        Row: {
+          id: string | null
+          pair_id: string | null
+          registered_at: string | null
+          status: Database["public"]["Enums"]["registration_status"] | null
+          tournament_category_id: string | null
+          tournament_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          pair_id?: string | null
+          registered_at?: string | null
+          status?: Database["public"]["Enums"]["registration_status"] | null
+          tournament_category_id?: string | null
+          tournament_id?: string | null
+        }
+        Update: {
+          id?: string | null
+          pair_id?: string | null
+          registered_at?: string | null
+          status?: Database["public"]["Enums"]["registration_status"] | null
+          tournament_category_id?: string | null
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_pair_id_fkey"
+            columns: ["pair_id"]
+            isOneToOne: true
+            referencedRelation: "pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_tournament_category_id_fkey"
+            columns: ["tournament_category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_create_registration: {

@@ -14,6 +14,7 @@ import TournamentDetail from "./pages/TournamentDetail";
 import MyProfile from "./pages/MyProfile";
 import MyInvitations from "./pages/MyInvitations";
 import Ranking from "./pages/Ranking";
+import Participants from "./pages/Participants";
 import Notifications from "./pages/Notifications";
 import AdminHome from "./pages/admin/AdminHome";
 import AdminTournaments from "./pages/admin/AdminTournaments";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/tournaments" element={<Tournaments />} />
               <Route path="/tournaments/:id" element={<TournamentDetail />} />
               <Route path="/ranking" element={<Ranking />} />
+              <Route path="/participantes" element={<Participants />} />
               <Route path="/guias/categorias" element={<CategoriasGuide />} />
               <Route path="/me" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
               <Route path="/my-invitations" element={<ProtectedRoute><MyInvitations /></ProtectedRoute>} />
