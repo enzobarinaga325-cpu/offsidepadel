@@ -98,7 +98,9 @@ export function FixtureView({ tournamentId, tournamentCategoryId }: { tournament
             <h3 className="font-semibold mb-2">{g.name}</h3>
             <div className="grid sm:grid-cols-2 gap-2">
               {ms.map((m) => (
-                <MatchCard key={m.id} m={m} pairs={pairs} isAdmin={isAdmin} onEdit={() => setEditMatch(m)} />
+                <MatchCard key={m.id} m={m} pairs={pairs} isAdmin={isAdmin}
+                  onEdit={() => setEditMatch(m)}
+                  onSchedule={() => setScheduleMatch(m)} />
               ))}
             </div>
           </div>
@@ -114,7 +116,9 @@ export function FixtureView({ tournamentId, tournamentCategoryId }: { tournament
                 <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{roundLabels[r]}</div>
                 <div className="space-y-2">
                   {bracketByRound[r].sort((a, b) => a.bracket_position - b.bracket_position).map((m) => (
-                    <MatchCard key={m.id} m={m} pairs={pairs} isAdmin={isAdmin} onEdit={() => setEditMatch(m)} compact />
+                    <MatchCard key={m.id} m={m} pairs={pairs} isAdmin={isAdmin}
+                      onEdit={() => setEditMatch(m)}
+                      onSchedule={() => setScheduleMatch(m)} compact />
                   ))}
                 </div>
               </div>
@@ -122,6 +126,7 @@ export function FixtureView({ tournamentId, tournamentCategoryId }: { tournament
           </div>
         </div>
       )}
+
 
       {editMatch && (
         <MatchResultDialog
