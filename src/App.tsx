@@ -14,6 +14,7 @@ import TournamentDetail from "./pages/TournamentDetail";
 import MyProfile from "./pages/MyProfile";
 import MyInvitations from "./pages/MyInvitations";
 import Ranking from "./pages/Ranking";
+import Participants from "./pages/Participants";
 import Notifications from "./pages/Notifications";
 import AdminHome from "./pages/admin/AdminHome";
 import AdminTournaments from "./pages/admin/AdminTournaments";
