@@ -168,9 +168,7 @@ export default function Participants() {
                   {gp.map((pair) => {
                     const p1 = profiles[pair.player1_id || ""];
                     const p2 = profiles[pair.player2_id || ""];
-                    const label =
-                      pair.display_name?.trim() ||
-                      `${playerName(pair.player1_id)} / ${playerName(pair.player2_id)}`;
+                    const label = `${playerName(pair.player1_id)} / ${playerName(pair.player2_id)}`;
                     return (
                       <Card key={pair.id} className="flex items-center gap-3 p-3">
                         <div className="flex -space-x-2">
