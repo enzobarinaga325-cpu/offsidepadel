@@ -1316,6 +1316,21 @@ export type Database = {
           tournament_id: string
         }[]
       }
+      get_tournament_participants: {
+        Args: { _tournament_id: string }
+        Returns: {
+          display_name: string
+          pair_id: string
+          player1_avatar: string
+          player1_id: string
+          player1_name: string
+          player2_avatar: string
+          player2_id: string
+          player2_name: string
+          registration_id: string
+          tournament_category_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
