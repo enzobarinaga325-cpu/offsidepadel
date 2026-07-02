@@ -138,17 +138,29 @@ export function FixtureView({ tournamentId, tournamentCategoryId }: { tournament
           onSuccess={() => { setEditMatch(null); void load(); }}
         />
       )}
+
+      {scheduleMatch && (
+        <MatchScheduleDialog
+          match={scheduleMatch}
+          pairLabelA={scheduleMatch.pair_a_id ? pairs.get(scheduleMatch.pair_a_id) ?? "—" : "—"}
+          pairLabelB={scheduleMatch.pair_b_id ? pairs.get(scheduleMatch.pair_b_id) ?? "—" : "—"}
+          open={!!scheduleMatch}
+          onOpenChange={(o) => !o && setScheduleMatch(null)}
+          onSuccess={() => { setScheduleMatch(null); void load(); }}
+        />
+      )}
     </div>
   );
 }
 
 function MatchCard({
-  m, pairs, isAdmin, onEdit, compact,
+  m, pairs, isAdmin, onEdit, onSchedule, compact,
 }: {
   m: Match;
   pairs: Map<string, string>;
   isAdmin: boolean;
   onEdit: () => void;
+  onSchedule: () => void;
   compact?: boolean;
 }) {
   const a = m.pair_a_id ? pairs.get(m.pair_a_id) ?? "BYE" : "Por definir";
@@ -178,11 +190,19 @@ function MatchCard({
           {new Date(m.scheduled_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
         </div>
       )}
-      {isAdmin && m.pair_a_id && m.pair_b_id && (
-        <Button variant="outline" size="sm" className="w-full mt-2 h-7 text-xs" onClick={onEdit}>
-          {m.status === "scheduled" ? "Cargar resultado" : "Editar resultado"}
-        </Button>
+      {isAdmin && (
+        <div className="flex gap-2 mt-2">
+          <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={onSchedule}>
+            <Clock className="h-3 w-3 mr-1" />Programar
+          </Button>
+          {m.pair_a_id && m.pair_b_id && (
+            <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={onEdit}>
+              {m.status === "scheduled" ? "Resultado" : "Editar"}
+            </Button>
+          )}
+        </div>
       )}
     </Card>
   );
 }
+
