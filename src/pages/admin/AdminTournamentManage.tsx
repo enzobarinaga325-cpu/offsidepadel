@@ -11,6 +11,8 @@ import { Loader2, ArrowLeft, Play, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FixtureView } from "@/components/tournaments/FixtureView";
 import { StandingsView } from "@/components/tournaments/StandingsView";
+import { GroupsManager } from "@/components/admin/GroupsManager";
+
 import {
   tournamentCategoryLabel,
   tournamentCategoryStatusLabels,
@@ -209,11 +211,15 @@ export default function AdminTournamentManage() {
                   </div>
                 </Card>
 
-                <Tabs defaultValue="fixture">
+                <Tabs defaultValue="groups">
                   <TabsList>
+                    <TabsTrigger value="groups">Zonas</TabsTrigger>
                     <TabsTrigger value="fixture">Fixture</TabsTrigger>
                     <TabsTrigger value="standings">Posiciones</TabsTrigger>
                   </TabsList>
+                  <TabsContent value="groups" className="mt-4">
+                    <GroupsManager tournamentId={tournament.id} tournamentCategoryId={activeCat.id} />
+                  </TabsContent>
                   <TabsContent value="fixture" className="mt-4">
                     <FixtureView tournamentId={tournament.id} tournamentCategoryId={activeCat.id} />
                   </TabsContent>
@@ -221,6 +227,7 @@ export default function AdminTournamentManage() {
                     <StandingsView tournamentId={tournament.id} tournamentCategoryId={activeCat.id} />
                   </TabsContent>
                 </Tabs>
+
               </>
             )}
           </>

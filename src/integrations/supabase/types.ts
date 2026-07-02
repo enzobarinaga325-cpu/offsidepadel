@@ -1238,6 +1238,10 @@ export type Database = {
         Args: { _approve: boolean; _comment: string; _registration_id: string }
         Returns: undefined
       }
+      admin_set_category_groups: {
+        Args: { _groups: Json; _tournament_category_id: string }
+        Returns: Json
+      }
       admin_set_user_active: {
         Args: { _active: boolean; _user_id: string }
         Returns: undefined
