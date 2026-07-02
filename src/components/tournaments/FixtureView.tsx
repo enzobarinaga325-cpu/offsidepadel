@@ -4,9 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { roundLabels, roundOrder, matchStatusLabels, formatSetsScore } from "@/lib/match-helpers";
-import { Calendar } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { MatchResultDialog } from "@/components/admin/MatchResultDialog";
+import { MatchScheduleDialog } from "@/components/admin/MatchScheduleDialog";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 type Match = {
   id: string;
