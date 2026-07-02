@@ -53,47 +53,46 @@ export default function Participants() {
     if (!selected) return;
     (async () => {
       setLoading(true);
-      const [{ data: tcData }, { data: regData }] = await Promise.all([
+      const [{ data: tcData }, { data: partData }] = await Promise.all([
         supabase
           .from("tournament_categories")
           .select("id,tournament_id,category_id,mode,suma_value,gender,label,position, category:categories(id,name,level)")
           .eq("tournament_id", selected)
           .order("position"),
-        supabase
-          .from("public_registrations")
-          .select("id,tournament_category_id,pair_id")
-          .eq("tournament_id", selected)
-          .eq("status", "approved"),
+        supabase.rpc("get_tournament_participants", { _tournament_id: selected }),
       ]);
       const tcRows = (tcData ?? []) as any as TC[];
-      const regRows = (regData ?? []).filter((r) => r.pair_id && r.tournament_category_id) as any as Reg[];
+      const parts = (partData ?? []) as any[];
+      const regRows: Reg[] = parts
+        .filter((p) => p.pair_id && p.tournament_category_id)
+        .map((p) => ({ id: p.registration_id, tournament_category_id: p.tournament_category_id, pair_id: p.pair_id }));
       setTcs(tcRows);
       setRegs(regRows);
 
-      const pairIds = Array.from(new Set(regRows.map((r) => r.pair_id)));
-      let pairMap: Record<string, Pair> = {};
-      let profMap: Record<string, Profile> = {};
-      if (pairIds.length) {
-        const { data: pd } = await supabase
-          .from("pairs")
-          .select("id,player1_id,player2_id,display_name")
-          .in("id", pairIds);
-        (pd ?? []).forEach((p: any) => (pairMap[p.id] = p));
-        const userIds = Array.from(
-          new Set(
-            (pd ?? []).flatMap((p: any) => [p.player1_id, p.player2_id]).filter(Boolean)
-          )
-        );
-        if (userIds.length) {
-          const { data: prof } = await supabase
-            .from("profiles_public")
-            .select("user_id,full_name,avatar_url")
-            .in("user_id", userIds);
-          (prof ?? []).forEach((p: any) => {
-            if (p.user_id) profMap[p.user_id] = p;
-          });
+      const pairMap: Record<string, Pair> = {};
+      const profMap: Record<string, Profile> = {};
+      parts.forEach((p) => {
+        pairMap[p.pair_id] = {
+          id: p.pair_id,
+          player1_id: p.player1_id,
+          player2_id: p.player2_id,
+          display_name: p.display_name,
+        };
+        if (p.player1_id) {
+          profMap[p.player1_id] = {
+            user_id: p.player1_id,
+            full_name: p.player1_name,
+            avatar_url: p.player1_avatar,
+          };
         }
-      }
+        if (p.player2_id) {
+          profMap[p.player2_id] = {
+            user_id: p.player2_id,
+            full_name: p.player2_name,
+            avatar_url: p.player2_avatar,
+          };
+        }
+      });
       setPairs(pairMap);
       setProfiles(profMap);
       setLoading(false);
