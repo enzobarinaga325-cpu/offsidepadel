@@ -32,6 +32,7 @@ export function FixtureView({ tournamentId, tournamentCategoryId }: { tournament
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
   const [pairs, setPairs] = useState<Map<string, string>>(new Map());
   const [editMatch, setEditMatch] = useState<Match | null>(null);
+  const [scheduleMatch, setScheduleMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -42,30 +43,23 @@ export function FixtureView({ tournamentId, tournamentCategoryId }: { tournament
       mq = mq.eq("tournament_category_id", tournamentCategoryId);
       gq = gq.eq("tournament_category_id", tournamentCategoryId);
     }
-    const [{ data: m }, { data: g }, { data: p }] = await Promise.all([
+    const [{ data: m }, { data: g }, { data: parts }] = await Promise.all([
       mq, gq,
-      supabase.from("pairs").select("id, player1_id, player2_id").eq("tournament_id", tournamentId),
+      (supabase.rpc as any)("get_tournament_participants", { _tournament_id: tournamentId }),
     ]);
     setMatches((m ?? []) as Match[]);
     setGroups(g ?? []);
 
-    const userIds = new Set<string>();
-    (p ?? []).forEach((pr: any) => {
-      if (pr.player1_id) userIds.add(pr.player1_id);
-      if (pr.player2_id) userIds.add(pr.player2_id);
-    });
-    const nameMap = new Map<string, string>();
-    if (userIds.size > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(userIds));
-      (profs ?? []).forEach((pr) => nameMap.set(pr.user_id, pr.full_name ?? "Jugador"));
-    }
     const pairMap = new Map<string, string>();
-    (p ?? []).forEach((pr: any) => {
-      pairMap.set(pr.id, `${nameMap.get(pr.player1_id) ?? "?"} / ${nameMap.get(pr.player2_id) ?? "?"}`);
+    ((parts ?? []) as any[]).forEach((r) => {
+      const a = r.player1_name ?? "Jugador";
+      const b = r.player2_name ?? "Jugador";
+      pairMap.set(r.pair_id, r.display_name?.trim() ? r.display_name : `${a} / ${b}`);
     });
     setPairs(pairMap);
     setLoading(false);
   }, [tournamentId, tournamentCategoryId]);
+
 
   useEffect(() => { void load(); }, [load]);
 
