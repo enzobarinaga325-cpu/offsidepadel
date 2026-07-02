@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Menu, Trophy, BarChart3, User, Shield, LogOut, Home } from "lucide-react";
+import { Menu, Trophy, BarChart3, User, Shield, LogOut, Home, Users } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 const baseNav = [
   { icon: Trophy, label: "Torneos", path: "/tournaments" },
+  { icon: Users, label: "Participantes", path: "/participantes" },
   { icon: BarChart3, label: "Ranking", path: "/ranking" },
   { icon: User, label: "Mi perfil", path: "/me" },
 ];
